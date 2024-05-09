@@ -23,6 +23,8 @@ def readCsv(path_to_house_prices_file):
     average_house_prices_years = [] 
     start_year = 2013
 
+    special_municipality_mapping = {"'s-Gravenhage (municipality)": "'s-Gravenhage"}
+
     with open(path_to_house_prices_file, newline='', encoding='utf-8') as csvfile:
         csv_reader = csv.reader(csvfile, delimiter=';', quotechar='|')
         next(csv_reader, None)  # skip the headers
@@ -31,7 +33,11 @@ def readCsv(path_to_house_prices_file):
                 current_year = int(row[0].replace('"', ''))
                 current_city = row[1].replace('"', '')
                 current_price = int(row[2])
-                
+
+                # Some names in the geographical file and the housing price file are not the same. So we need to do this mapping.
+                if current_city in special_municipality_mapping:
+                    current_city = special_municipality_mapping[current_city]
+
                 year_idx = current_year -start_year
                 if (len(average_house_prices_years) == year_idx):
                     average_house_prices_per_year = {current_city: current_price}
