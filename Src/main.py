@@ -4,6 +4,14 @@ import geopandas as gpd
 import glob
 import matplotlib
 import matplotlib.pyplot as plt
+
+import libpysal as lps
+from libpysal.weights import Queen
+
+from esda.moran import Moran_Local
+from splot.esda import moran_scatterplot
+from splot.esda import lisa_cluster
+
 import os
 import shutil 
 import sys
@@ -15,21 +23,15 @@ def readCsv(path_to_house_prices_file):
     average_house_prices_years = [] 
     start_year = 2013
 
-    with open(path_to_house_prices_file, newline='') as csvfile:
+    with open(path_to_house_prices_file, newline='', encoding='utf-8') as csvfile:
         csv_reader = csv.reader(csvfile, delimiter=';', quotechar='|')
-        count_house_price_year = 0
-        sum_house_prices = 0
         next(csv_reader, None)  # skip the headers
-        for row in csv_reader:
-            print("--------")       
+        for row in csv_reader:     
             if ((len(row) == 3) and (row[2].isdigit())):
-                print ("Add a city with house price")
                 current_year = int(row[0].replace('"', ''))
                 current_city = row[1].replace('"', '')
-                current_price = row[2]
-                print(current_year)
-                print(current_city)
-                print(current_price)
+                current_price = int(row[2])
+                
                 year_idx = current_year -start_year
                 if (len(average_house_prices_years) == year_idx):
                     average_house_prices_per_year = {current_city: current_price}
@@ -53,26 +55,21 @@ def getCitiesPolygonsWithHousePrices(path_to_shape_file, year, average_house_pri
                 f = {k: feature[k] for k in ['id', 'geometry']}
                 f['properties'] = {k: feature['properties'][k] for k in usecols}
                 city_name = f['properties']['GM_NAAM']
-                print (city_name)
+
                 # dictionary with key, value pair. For example, Aa en Hunze -> 213176
                 if city_name in average_house_prices_per_year: # only display cities with housing prices
-                    print("inside records --- ")
-                    print (city_name)
-                    print (f)
-                    print("Keep this row as it has house price")
                     f['properties']['Year'] = year
                     f['properties']['Average_House_Price'] = average_house_prices_per_year[city_name]
-                    print("With average house price")
-                    print (f)
                     yield f
                 else:
+                    print("SKIp city '%s' as DOES NOT have house price" % city_name)
+                    print (f)
                     open_file = open(cities_with_polygons_and_not_prices_file_name_path, "a")
-                    print (city_name)
-                    open_file.write(city_name)
+                    open_file.write(city_name  + " " + f['id']  + " " + f['properties']['GM_CODE'])
                     open_file.write("\n")
                     open_file.close()
 
-    cities_polygons = gpd.GeoDataFrame.from_features(records(path_to_shape_file, ['GM_NAAM'], year, average_house_prices_per_year))
+    cities_polygons = gpd.GeoDataFrame.from_features(records(path_to_shape_file, ['GM_CODE', 'H2O', 'OAD', 'STED', 'BEV_DICHTH', 'GM_NAAM'], year, average_house_prices_per_year))
     return cities_polygons
 
 def exitProgram():
@@ -91,10 +88,11 @@ def showCitiesInMap(cities_polygons_with_house_prices, start_year):
 
     if os.path.exists(output_folder):
         print("Directory '%s' exists. So removing its existing contents" % output_folder)
-        files = glob.glob('/YOUR/PATH/*')
+        files = glob.glob(output_folder + '/*')
         for f in files:
+            print (f)
             os.remove(f)
-
+ 
     if not os.path.exists(output_folder):
         try:
             os.makedirs(output_folder)
@@ -108,6 +106,28 @@ def showCitiesInMap(cities_polygons_with_house_prices, start_year):
     cities_polygons_with_house_prices.boundary.plot()
     save_plot_file_name = "cities_polygon_boundaries" + str(start_year) 
     plt.savefig(output_folder + '/' + save_plot_file_name)
+
+def calculateMoranI(cities_polygons_with_house_prices):
+     # Calculate weight matrix from the GeoDataFrame using Queen approach
+    queen_weight_matrix = Queen.from_dataframe(cities_polygons_with_house_prices)
+
+    print(type(cities_polygons_with_house_prices))
+    print(type(cities_polygons_with_house_prices['GM_NAAM'].values))
+    print(cities_polygons_with_house_prices['GM_NAAM'].values)
+
+    # <class 'pandas.core.series.Series'> when used inside this function.
+    # Outside this function is numpy array    
+    print(type(cities_polygons_with_house_prices['Average_House_Price']))
+    print(cities_polygons_with_house_prices['Average_House_Price'].values)
+
+    # house_prices = cities_polygons_with_house_prices['Average_House_Price'].to_numpy()
+    #print(type(house_prices))
+
+    moran_loc = Moran_Local(cities_polygons_with_house_prices['Average_House_Price'].values, queen_weight_matrix)
+    print("Moran spatial autocorrelation between cities")
+    print(moran_loc)
+
+    print("Moran EI value{}!".format(moran_loc.EI))
 
 def main():
     print("\n----Correlation and Similarities for spatiotemporal data - Housing Prices in the Netherlands-----")
@@ -130,7 +150,7 @@ def main():
     # Prepare housing price data per year with geographical boundaries for cities 
     path_to_shape_file = args[3] 
     start_year = 2013
-    for year_idx in range(11):    
+    for year_idx in range(13):    
         average_house_prices_per_year = average_house_prices_years[year_idx]
         year = start_year + year_idx
         print("--------{}".format(year))
@@ -141,10 +161,9 @@ def main():
 
         # Show cities in map. Only cities with housing prices will be shown.
         showCitiesInMap(cities_polygons_with_house_prices, year)
+
+        # Main part: calculate Moran I value
+        calculateMoranI(cities_polygons_with_house_prices)
       
 if __name__ == "__main__":
-    main()
-
-
-
-    
+    main()    
