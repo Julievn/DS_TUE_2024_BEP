@@ -111,7 +111,7 @@ def getCitiesPolygonsWithData(path_to_shape_file, year, data_per_year, data_name
     # It is short for "keyword arguments". When defining a function, you can use the ** in front of a parameter to indicate that 
     # it should accept any number of keyword arguments.
     def records(filename, usecols, year, data_per_year, **kwargs):
-        cities_with_polygons_and_not_data_file_name_path = output_folder + "/cities_with_polygons_and_not_prices_" + str(year) + ".txt" 
+        cities_with_polygons_and_not_data_file_name_path = output_folder + "/cities_with_polygons_and_not_data_" + str(year) + ".txt" 
         with fiona.open(filename, **kwargs) as source:
             for feature in source:
                 f = {k: feature[k] for k in ['id', 'geometry']}
@@ -138,7 +138,7 @@ def exitProgram():
     print("Exiting the program...")
     sys.exit(1)
 
-def showCitiesInMap(cities_polygons_with_data, output_folder, year):
+def showCitiesInMap(cities_polygons_with_data, data_name, output_folder, year):
     print(type(cities_polygons_with_data))
     print(cities_polygons_with_data.columns.tolist())
 
@@ -153,6 +153,11 @@ def showCitiesInMap(cities_polygons_with_data, output_folder, year):
     cities_polygons_with_data.boundary.plot()
     save_plot_file_name = "cities_polygon_boundaries_" + str(year) 
     #plt.show()
+    plt.savefig(output_folder + '/' + save_plot_file_name)
+
+    # Plot by data
+    cities_polygons_with_data.plot(column=data_name, legend=True)
+    save_plot_file_name = "choropleth_map_" + data_name + "_" + str(year) 
     plt.savefig(output_folder + '/' + save_plot_file_name)
 
 def calculateMoranI(cities_polygons_with_data, data_name, output_folder, year):
@@ -214,7 +219,7 @@ def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
         print("Successfully loaded ", path_to_shape_file)
 
         # Show cities in map. Only cities with housing prices will be shown.
-        showCitiesInMap(cities_polygons_with_house_prices, output_housing_price_folder, year)
+        showCitiesInMap(cities_polygons_with_house_prices, data_name, output_housing_price_folder, year)
 
         # Main part: calculate Moran I value
         calculateMoranI(cities_polygons_with_house_prices, data_name, output_housing_price_folder, year)
@@ -231,17 +236,20 @@ def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
         year = start_year + year_idx
         print("--------{}".format(year))
 
-        # Prepare output housing price folder
+        # Prepare output immigration folder
         output_immigration_folder = "Output/Immigration/" + str(year)
         CreateOutputFolderIfNeeded(output_immigration_folder)
 
-        # Keep only cities with housing prices 
+        # Keep only cities with immigration data
         data_name = "Immigration"
         cities_polygons_with_immigration = getCitiesPolygonsWithData(path_to_shape_file, year, immigration_per_year, data_name, output_immigration_folder)
         print("Successfully loaded ", path_to_shape_file)
 
         # Show cities in map. Only cities with housing prices will be shown.
-        showCitiesInMap(cities_polygons_with_immigration, output_immigration_folder, year)
+        showCitiesInMap(cities_polygons_with_immigration, data_name, output_immigration_folder, year)
+
+         # Main part: calculate Moran I value
+        calculateMoranI(cities_polygons_with_immigration, data_name, output_immigration_folder, year)
 
 def main():
     print("\n----Correlation and Similarities for spatiotemporal data - Housing Prices in the Netherlands-----")
