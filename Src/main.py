@@ -154,26 +154,13 @@ def calculateMoranI(cities_polygons_with_house_prices, output_folder, year):
     plt.savefig(output_folder + '/' + save_plot_file_name)
     #plt.show()
 
-def main():
-    print("\n----Correlation and Similarities for spatiotemporal data - Housing Prices in the Netherlands-----")
-    print("**************************************************************************************************")
-    
-    # args is a list of the command line args
-    args = sys.argv[1:]
-    
-    if len(args) <= 0 or args[0] != '-house_price_csv' or args[2] != '-path_to_shape_file':
-        print("Please use -house_price_csv and -path_to_shape_file as parameters.")
-        exitProgram()
-
-    print("Running program {} with value {}; {} with value {} ".format(args[0], args[1], args[2], args[3]))
-    path_to_house_prices_csv_file = args[1]
+def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
+    # Load house prices from csv file
     print("Loading ", path_to_house_prices_csv_file)
-    
     house_prices_years = readCsvHousePrice(path_to_house_prices_csv_file)
     print("Successfully loaded ", path_to_house_prices_csv_file)
 
     # Prepare housing price data per year with geographical boundaries for cities 
-    path_to_shape_file = args[3] 
     start_year = 2013
     for year_idx in range(11):    
         house_prices_per_year = house_prices_years[year_idx]
@@ -193,6 +180,24 @@ def main():
 
         # Main part: calculate Moran I value
         calculateMoranI(cities_polygons_with_house_prices, output_housing_price_folder, year)
-      
+
+def main():
+    print("\n----Correlation and Similarities for spatiotemporal data - Housing Prices in the Netherlands-----")
+    print("**************************************************************************************************")
+    
+    # args is a list of the command line args
+    args = sys.argv[1:]
+    
+    if len(args) <= 0 or args[0] != '-house_price_csv' or args[2] != '-path_to_shape_file':
+        print("Please use -house_price_csv and -path_to_shape_file as parameters.")
+        exitProgram()
+
+    print("Running program {} with value {}; {} with value {} ".format(args[0], args[1], args[2], args[3]))
+
+    # Processing house prices
+    path_to_house_prices_csv_file = args[1]
+    path_to_shape_file = args[3] 
+    processHousePrices(path_to_house_prices_csv_file, path_to_shape_file)
+     
 if __name__ == "__main__":
     main()    
