@@ -18,7 +18,7 @@ import sys
 
 # Read a csv file containing house prices for all cities in the Netherlands.
 # Return a list of dictionaries. Each element is a dictionary. Each dictionary is a list of cities with house prices.
-def readCsv(path_to_house_prices_file):
+def readCsvHousePrice(path_to_house_prices_file):
     # create a list of dictionaries. Each element is a dictionary. Each dictionary is a list of cities with house prices.
     average_house_prices_years = [] 
     start_year = 2013
@@ -169,14 +169,14 @@ def main():
     path_to_house_prices_csv_file = args[1]
     print("Loading ", path_to_house_prices_csv_file)
     
-    average_house_prices_years = readCsv(path_to_house_prices_csv_file)
+    house_prices_years = readCsvHousePrice(path_to_house_prices_csv_file)
     print("Successfully loaded ", path_to_house_prices_csv_file)
 
     # Prepare housing price data per year with geographical boundaries for cities 
     path_to_shape_file = args[3] 
     start_year = 2013
     for year_idx in range(11):    
-        average_house_prices_per_year = average_house_prices_years[year_idx]
+        house_prices_per_year = house_prices_years[year_idx]
         year = start_year + year_idx
         print("--------{}".format(year))
 
@@ -185,7 +185,7 @@ def main():
         CreateOutputFolderIfNeeded(output_housing_price_folder)
 
         # Only cities with housing prices 
-        cities_polygons_with_house_prices = getCitiesPolygonsWithHousePrices(path_to_shape_file, year, average_house_prices_per_year, output_housing_price_folder)
+        cities_polygons_with_house_prices = getCitiesPolygonsWithHousePrices(path_to_shape_file, year, house_prices_per_year, output_housing_price_folder)
         print("Successfully loaded ", path_to_shape_file)
 
         # Show cities in map. Only cities with housing prices will be shown.
