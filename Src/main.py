@@ -66,7 +66,8 @@ def readCsvImmigration(path_to_immigration_file):
                                     "Laren (NH.)" : "Laren",
                                     "Rijswijk (ZH.)" : "Rijswijk",
                                     "Beek (L.)" : "Beek",
-                                    "Stein (L.)" : "Stein"}
+                                    "Stein (L.)" : "Stein",
+                                    "Middelburg (Z.)" : "Middelburg"}
 
     with open(path_to_immigration_file, newline='', encoding='utf-8') as csvfile:
         csv_reader = csv.reader(csvfile, delimiter=';', quotechar='|')
@@ -105,7 +106,7 @@ def CreateOutputFolderIfNeeded(output_folder):
         except OSError as error:
             print("Directory '%s' can not be created" % output_folder)
 
-def getCitiesPolygonsWithHousePrices(path_to_shape_file, year, data_per_year, data_name, output_folder):    
+def getCitiesPolygonsWithData(path_to_shape_file, year, data_per_year, data_name, output_folder):    
     # kwargs in Python is a special syntax that allows you to pass a keyworded, variable-length argument dictionary to a function. 
     # It is short for "keyword arguments". When defining a function, you can use the ** in front of a parameter to indicate that 
     # it should accept any number of keyword arguments.
@@ -197,7 +198,6 @@ def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
     house_prices_years = readCsvHousePrice(path_to_house_prices_csv_file)
     print("Successfully loaded ", path_to_house_prices_csv_file)
 
-    # Prepare housing price data per year with geographical boundaries for cities 
     start_year = 2013
     for year_idx in range(1):    
         house_prices_per_year = house_prices_years[year_idx]
@@ -210,7 +210,7 @@ def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
 
         # Keep only cities with housing prices 
         data_name = "House_Price"
-        cities_polygons_with_house_prices = getCitiesPolygonsWithHousePrices(path_to_shape_file, year, house_prices_per_year, data_name, output_housing_price_folder)
+        cities_polygons_with_house_prices = getCitiesPolygonsWithData(path_to_shape_file, year, house_prices_per_year, data_name, output_housing_price_folder)
         print("Successfully loaded ", path_to_shape_file)
 
         # Show cities in map. Only cities with housing prices will be shown.
@@ -224,6 +224,24 @@ def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
     print("Loading ", path_to_immigration_csv_file)
     immigration_all_years = readCsvImmigration(path_to_immigration_csv_file)
     print("Successfully loaded ", path_to_immigration_csv_file)
+
+    start_year = 2013
+    for year_idx in range(1):    
+        immigration_per_year = immigration_all_years[year_idx]
+        year = start_year + year_idx
+        print("--------{}".format(year))
+
+        # Prepare output housing price folder
+        output_immigration_folder = "Output/Immigration/" + str(year)
+        CreateOutputFolderIfNeeded(output_immigration_folder)
+
+        # Keep only cities with housing prices 
+        data_name = "Immigration"
+        cities_polygons_with_immigration = getCitiesPolygonsWithData(path_to_shape_file, year, immigration_per_year, data_name, output_immigration_folder)
+        print("Successfully loaded ", path_to_shape_file)
+
+        # Show cities in map. Only cities with housing prices will be shown.
+        showCitiesInMap(cities_polygons_with_immigration, output_immigration_folder, year)
 
 def main():
     print("\n----Correlation and Similarities for spatiotemporal data - Housing Prices in the Netherlands-----")
