@@ -53,6 +53,43 @@ def readCsvHousePrice(path_to_house_prices_file):
                     average_house_prices_per_year[current_city] = current_price
     return average_house_prices_years
 
+# Read a csv file containing immigration for all cities in the Netherlands.
+# Return a list of dictionaries. Each element is a dictionary. Each dictionary is a list of cities with immigration.
+def readCsvImmigration(path_to_immigration_file):
+    # create a list of dictionaries. Each element is a dictionary. Each dictionary is a list of cities with house prices.
+    immigration_all_years = [] 
+    start_year = 2013
+
+    special_municipality_mapping = {"'s-Gravenhage (municipality)": "'s-Gravenhage",
+                                    "Groningen (municipality)": "Groningen",
+                                    "Utrecht (municipality)" : "Utrecht",
+                                    "Laren (NH.)" : "Laren",
+                                    "Rijswijk (ZH.)" : "Rijswijk",
+                                    "Beek (L.)" : "Beek",
+                                    "Stein (L.)" : "Stein"}
+
+    with open(path_to_immigration_file, newline='', encoding='utf-8') as csvfile:
+        csv_reader = csv.reader(csvfile, delimiter=';', quotechar='|')
+        next(csv_reader, None)  # skip the headers
+        for row in csv_reader:     
+            if ((len(row) == 4) and (row[3].isdigit())):
+                current_year = int(row[1].replace('"', ''))
+                current_city = row[2].replace('"', '')
+                current_immigration = int(row[3])
+
+                # Some names in the geographical file and the housing price file are not the same. So we need to do this mapping.
+                if current_city in special_municipality_mapping:
+                    current_city = special_municipality_mapping[current_city]
+
+                year_idx = current_year -start_year
+                if (len(immigration_all_years) == year_idx):
+                    immigration_per_year = {current_city: current_immigration}
+                    immigration_all_years.append(immigration_per_year)
+                else:
+                    immigration_per_year = immigration_all_years[current_year -start_year]
+                    immigration_per_year[current_city] = current_immigration
+    return immigration_all_years
+
 def CreateOutputFolderIfNeeded(output_folder):
     if os.path.exists(output_folder):
         print("Directory '%s' exists. So removing its existing contents" % output_folder)
@@ -171,7 +208,7 @@ def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
         output_housing_price_folder = "Output/Housing_Prices/" + str(year)
         CreateOutputFolderIfNeeded(output_housing_price_folder)
 
-        # Only cities with housing prices 
+        # Keep only cities with housing prices 
         cities_polygons_with_house_prices = getCitiesPolygonsWithHousePrices(path_to_shape_file, year, house_prices_per_year, output_housing_price_folder)
         print("Successfully loaded ", path_to_shape_file)
 
@@ -181,6 +218,12 @@ def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
         # Main part: calculate Moran I value
         calculateMoranI(cities_polygons_with_house_prices, output_housing_price_folder, year)
 
+def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
+    # Load immigration from csv file
+    print("Loading ", path_to_immigration_csv_file)
+    immigration_all_years = readCsvImmigration(path_to_immigration_csv_file)
+    print("Successfully loaded ", path_to_immigration_csv_file)
+
 def main():
     print("\n----Correlation and Similarities for spatiotemporal data - Housing Prices in the Netherlands-----")
     print("**************************************************************************************************")
@@ -188,7 +231,7 @@ def main():
     # args is a list of the command line args
     args = sys.argv[1:]
     
-    if len(args) <= 0 or args[0] != '-house_price_csv' or args[2] != '-path_to_shape_file':
+    if len(args) <= 0 or args[0] != '-house_price_csv' or args[2] != '-path_to_shape_file' or args[4] != '-immigration_csv':
         print("Please use -house_price_csv and -path_to_shape_file as parameters.")
         exitProgram()
 
@@ -198,6 +241,10 @@ def main():
     path_to_house_prices_csv_file = args[1]
     path_to_shape_file = args[3] 
     processHousePrices(path_to_house_prices_csv_file, path_to_shape_file)
+
+    # Processing immigration
+    path_to_immigration_csv_file = args[5]
+    processImmigration(path_to_immigration_csv_file, path_to_shape_file)
      
 if __name__ == "__main__":
     main()    
