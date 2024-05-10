@@ -53,15 +53,27 @@ def readCsv(path_to_house_prices_file):
                     average_house_prices_per_year[current_city] = current_price
     return average_house_prices_years
 
-def getCitiesPolygonsWithHousePrices(path_to_shape_file, year, average_house_prices_per_year):    
+def CreateOutputFolderIfNeeded(output_folder):
+    if os.path.exists(output_folder):
+        print("Directory '%s' exists. So removing its existing contents" % output_folder)
+        files = glob.glob(output_folder + '/*')
+        for f in files:
+            print (f)
+            os.remove(f)
+ 
+    if not os.path.exists(output_folder):
+        try:
+            os.makedirs(output_folder)
+            print("Directory '%s' created" % output_folder)
+        except OSError as error:
+            print("Directory '%s' can not be created" % output_folder)
+
+def getCitiesPolygonsWithHousePrices(path_to_shape_file, year, average_house_prices_per_year, output_housing_price_folder):    
     # kwargs in Python is a special syntax that allows you to pass a keyworded, variable-length argument dictionary to a function. 
     # It is short for "keyword arguments". When defining a function, you can use the ** in front of a parameter to indicate that 
     # it should accept any number of keyword arguments.
     def records(filename, usecols, year, average_house_prices_per_year, **kwargs):
-        cities_with_polygons_and_not_prices_file_name_path = "Output/cities_with_polygons_and_not_prices_" + str(year) + ".txt" 
-        if os.path.exists(cities_with_polygons_and_not_prices_file_name_path):
-            os.remove(cities_with_polygons_and_not_prices_file_name_path)
-
+        cities_with_polygons_and_not_prices_file_name_path = output_housing_price_folder + "/cities_with_polygons_and_not_prices_" + str(year) + ".txt" 
         with fiona.open(filename, **kwargs) as source:
             for feature in source:
                 f = {k: feature[k] for k in ['id', 'geometry']}
@@ -96,20 +108,6 @@ def showCitiesInMap(cities_polygons_with_house_prices, output_folder, year):
     print(cities_polygons_with_house_prices.head(10))
 
     cities_polygons_with_house_prices.plot()
-
-    if os.path.exists(output_folder):
-        print("Directory '%s' exists. So removing its existing contents" % output_folder)
-        files = glob.glob(output_folder + '/*')
-        for f in files:
-            print (f)
-            os.remove(f)
- 
-    if not os.path.exists(output_folder):
-        try:
-            os.makedirs(output_folder)
-            print("Directory '%s' created" % output_folder)
-        except OSError as error:
-            print("Directory '%s' can not be created" % output_folder)
 
     save_plot_file_name = "cities_polygon_" + str(year)
     plt.savefig(output_folder + '/' + save_plot_file_name)
@@ -182,16 +180,19 @@ def main():
         year = start_year + year_idx
         print("--------{}".format(year))
 
+        # Prepare output housing price folder
+        output_housing_price_folder = "Output/Housing_Prices/" + str(year)
+        CreateOutputFolderIfNeeded(output_housing_price_folder)
+
         # Only cities with housing prices 
-        cities_polygons_with_house_prices = getCitiesPolygonsWithHousePrices(path_to_shape_file, year, average_house_prices_per_year)
+        cities_polygons_with_house_prices = getCitiesPolygonsWithHousePrices(path_to_shape_file, year, average_house_prices_per_year, output_housing_price_folder)
         print("Successfully loaded ", path_to_shape_file)
 
         # Show cities in map. Only cities with housing prices will be shown.
-        output_folder = "Output/" + str(year)
-        showCitiesInMap(cities_polygons_with_house_prices, output_folder, year)
+        showCitiesInMap(cities_polygons_with_house_prices, output_housing_price_folder, year)
 
         # Main part: calculate Moran I value
-        calculateMoranI(cities_polygons_with_house_prices, output_folder, year)
+        calculateMoranI(cities_polygons_with_house_prices, output_housing_price_folder, year)
       
 if __name__ == "__main__":
     main()    
