@@ -105,12 +105,12 @@ def CreateOutputFolderIfNeeded(output_folder):
         except OSError as error:
             print("Directory '%s' can not be created" % output_folder)
 
-def getCitiesPolygonsWithHousePrices(path_to_shape_file, year, average_house_prices_per_year, output_housing_price_folder):    
+def getCitiesPolygonsWithHousePrices(path_to_shape_file, year, data_per_year, data_name, output_folder):    
     # kwargs in Python is a special syntax that allows you to pass a keyworded, variable-length argument dictionary to a function. 
     # It is short for "keyword arguments". When defining a function, you can use the ** in front of a parameter to indicate that 
     # it should accept any number of keyword arguments.
-    def records(filename, usecols, year, average_house_prices_per_year, **kwargs):
-        cities_with_polygons_and_not_prices_file_name_path = output_housing_price_folder + "/cities_with_polygons_and_not_prices_" + str(year) + ".txt" 
+    def records(filename, usecols, year, data_per_year, **kwargs):
+        cities_with_polygons_and_not_data_file_name_path = output_folder + "/cities_with_polygons_and_not_prices_" + str(year) + ".txt" 
         with fiona.open(filename, **kwargs) as source:
             for feature in source:
                 f = {k: feature[k] for k in ['id', 'geometry']}
@@ -118,59 +118,59 @@ def getCitiesPolygonsWithHousePrices(path_to_shape_file, year, average_house_pri
                 city_name = f['properties']['GM_NAAM']
 
                 # dictionary with key, value pair. For example, Aa en Hunze -> 213176
-                if city_name in average_house_prices_per_year: # only display cities with housing prices
+                if city_name in data_per_year: # only display cities with housing prices
                     f['properties']['Year'] = year
-                    f['properties']['Average_House_Price'] = average_house_prices_per_year[city_name]
+                    f['properties'][data_name] = data_per_year[city_name]
                     yield f
                 else:
-                    print("SKIp city '%s' as DOES NOT have house price" % city_name)
+                    print("SKIp city '%s' as DOES NOT have data" % city_name)
                     print (f)
-                    open_file = open(cities_with_polygons_and_not_prices_file_name_path, "a")
+                    open_file = open(cities_with_polygons_and_not_data_file_name_path, "a")
                     open_file.write(city_name  + " " + f['id']  + " " + f['properties']['GM_CODE'])
                     open_file.write("\n")
                     open_file.close()
 
-    cities_polygons = gpd.GeoDataFrame.from_features(records(path_to_shape_file, ['GM_CODE', 'H2O', 'OAD', 'STED', 'BEV_DICHTH', 'GM_NAAM'], year, average_house_prices_per_year))
+    cities_polygons = gpd.GeoDataFrame.from_features(records(path_to_shape_file, ['GM_CODE', 'H2O', 'OAD', 'STED', 'BEV_DICHTH', 'GM_NAAM'], year, data_per_year))
     return cities_polygons
 
 def exitProgram():
     print("Exiting the program...")
     sys.exit(1)
 
-def showCitiesInMap(cities_polygons_with_house_prices, output_folder, year):
-    print(type(cities_polygons_with_house_prices))
-    print(cities_polygons_with_house_prices.columns.tolist())
+def showCitiesInMap(cities_polygons_with_data, output_folder, year):
+    print(type(cities_polygons_with_data))
+    print(cities_polygons_with_data.columns.tolist())
 
     # Print first 10 cities
-    print(cities_polygons_with_house_prices.head(10))
+    print(cities_polygons_with_data.head(10))
 
-    cities_polygons_with_house_prices.plot()
+    cities_polygons_with_data.plot()
 
     save_plot_file_name = "cities_polygon_" + str(year)
     plt.savefig(output_folder + '/' + save_plot_file_name)
 
-    cities_polygons_with_house_prices.boundary.plot()
+    cities_polygons_with_data.boundary.plot()
     save_plot_file_name = "cities_polygon_boundaries_" + str(year) 
     #plt.show()
     plt.savefig(output_folder + '/' + save_plot_file_name)
 
-def calculateMoranI(cities_polygons_with_house_prices, output_folder, year):
+def calculateMoranI(cities_polygons_with_data, data_name, output_folder, year):
      # Calculate weight matrix from the GeoDataFrame using Queen approach
-    queen_weight_matrix = Queen.from_dataframe(cities_polygons_with_house_prices)
+    queen_weight_matrix = Queen.from_dataframe(cities_polygons_with_data)
 
-    print(type(cities_polygons_with_house_prices))
-    print(type(cities_polygons_with_house_prices['GM_NAAM'].values))
-    print(cities_polygons_with_house_prices['GM_NAAM'].values)
+    print(type(cities_polygons_with_data))
+    print(type(cities_polygons_with_data['GM_NAAM'].values))
+    print(cities_polygons_with_data['GM_NAAM'].values)
 
     # <class 'pandas.core.series.Series'> when used inside this function.
     # Outside this function is numpy array    
-    print(type(cities_polygons_with_house_prices['Average_House_Price']))
-    print(cities_polygons_with_house_prices['Average_House_Price'].values)
+    print(type(cities_polygons_with_data[data_name]))
+    print(cities_polygons_with_data[data_name].values)
 
     # house_prices = cities_polygons_with_house_prices['Average_House_Price'].to_numpy()
     #print(type(house_prices))
 
-    moran_loc = Moran_Local(cities_polygons_with_house_prices['Average_House_Price'].values, queen_weight_matrix)
+    moran_loc = Moran_Local(cities_polygons_with_data[data_name].values, queen_weight_matrix)
     print("Moran spatial autocorrelation between cities")
     print(moran_loc)
 
@@ -186,7 +186,7 @@ def calculateMoranI(cities_polygons_with_house_prices, output_folder, year):
 
     # Let's now visualize the areas we found to be significant on a map:
     # hotspot cold spot
-    lisa_cluster(moran_loc, cities_polygons_with_house_prices, p=0.05, figsize = (9,9))
+    lisa_cluster(moran_loc, cities_polygons_with_data, p=0.05, figsize = (9,9))
     save_plot_file_name = "moran_hotspot_" + str(year)
     plt.savefig(output_folder + '/' + save_plot_file_name)
     #plt.show()
@@ -199,7 +199,7 @@ def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
 
     # Prepare housing price data per year with geographical boundaries for cities 
     start_year = 2013
-    for year_idx in range(11):    
+    for year_idx in range(1):    
         house_prices_per_year = house_prices_years[year_idx]
         year = start_year + year_idx
         print("--------{}".format(year))
@@ -209,14 +209,15 @@ def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
         CreateOutputFolderIfNeeded(output_housing_price_folder)
 
         # Keep only cities with housing prices 
-        cities_polygons_with_house_prices = getCitiesPolygonsWithHousePrices(path_to_shape_file, year, house_prices_per_year, output_housing_price_folder)
+        data_name = "House_Price"
+        cities_polygons_with_house_prices = getCitiesPolygonsWithHousePrices(path_to_shape_file, year, house_prices_per_year, data_name, output_housing_price_folder)
         print("Successfully loaded ", path_to_shape_file)
 
         # Show cities in map. Only cities with housing prices will be shown.
         showCitiesInMap(cities_polygons_with_house_prices, output_housing_price_folder, year)
 
         # Main part: calculate Moran I value
-        calculateMoranI(cities_polygons_with_house_prices, output_housing_price_folder, year)
+        calculateMoranI(cities_polygons_with_house_prices, data_name, output_housing_price_folder, year)
 
 def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
     # Load immigration from csv file
