@@ -23,7 +23,13 @@ def readCsv(path_to_house_prices_file):
     average_house_prices_years = [] 
     start_year = 2013
 
-    special_municipality_mapping = {"'s-Gravenhage (municipality)": "'s-Gravenhage"}
+    special_municipality_mapping = {"'s-Gravenhage (municipality)": "'s-Gravenhage",
+                                    "Groningen (municipality)": "Groningen",
+                                    "Utrecht (municipality)" : "Utrecht",
+                                    "Laren (NH.)" : "Laren",
+                                    "Rijswijk (ZH.)" : "Rijswijk",
+                                    "Beek (L.)" : "Beek",
+                                    "Stein (L.)" : "Stein"}
 
     with open(path_to_house_prices_file, newline='', encoding='utf-8') as csvfile:
         csv_reader = csv.reader(csvfile, delimiter=';', quotechar='|')
@@ -82,7 +88,7 @@ def exitProgram():
     print("Exiting the program...")
     sys.exit(1)
 
-def showCitiesInMap(cities_polygons_with_house_prices, start_year):
+def showCitiesInMap(cities_polygons_with_house_prices, output_folder, year):
     print(type(cities_polygons_with_house_prices))
     print(cities_polygons_with_house_prices.columns.tolist())
 
@@ -90,7 +96,6 @@ def showCitiesInMap(cities_polygons_with_house_prices, start_year):
     print(cities_polygons_with_house_prices.head(10))
 
     cities_polygons_with_house_prices.plot()
-    output_folder = "Output/" + str(start_year)
 
     if os.path.exists(output_folder):
         print("Directory '%s' exists. So removing its existing contents" % output_folder)
@@ -106,14 +111,15 @@ def showCitiesInMap(cities_polygons_with_house_prices, start_year):
         except OSError as error:
             print("Directory '%s' can not be created" % output_folder)
 
-    save_plot_file_name = "cities_polygon_" + str(start_year)
+    save_plot_file_name = "cities_polygon_" + str(year)
     plt.savefig(output_folder + '/' + save_plot_file_name)
 
     cities_polygons_with_house_prices.boundary.plot()
-    save_plot_file_name = "cities_polygon_boundaries" + str(start_year) 
+    save_plot_file_name = "cities_polygon_boundaries_" + str(year) 
+    #plt.show()
     plt.savefig(output_folder + '/' + save_plot_file_name)
 
-def calculateMoranI(cities_polygons_with_house_prices):
+def calculateMoranI(cities_polygons_with_house_prices, output_folder, year):
      # Calculate weight matrix from the GeoDataFrame using Queen approach
     queen_weight_matrix = Queen.from_dataframe(cities_polygons_with_house_prices)
 
@@ -134,6 +140,21 @@ def calculateMoranI(cities_polygons_with_house_prices):
     print(moran_loc)
 
     print("Moran EI value{}!".format(moran_loc.EI))
+
+    fig, ax = moran_scatterplot(moran_loc)
+    ax.set_xlabel('Cities')
+    ax.set_ylabel('Spatial Lag of Cities')
+    #plt.show()
+
+    save_plot_file_name = "moran_scatterplot_" + str(year)
+    plt.savefig(output_folder + '/' + save_plot_file_name)
+
+    # Let's now visualize the areas we found to be significant on a map:
+    # hotspot cold spot
+    lisa_cluster(moran_loc, cities_polygons_with_house_prices, p=0.05, figsize = (9,9))
+    save_plot_file_name = "moran_hotspot_" + str(year)
+    plt.savefig(output_folder + '/' + save_plot_file_name)
+    #plt.show()
 
 def main():
     print("\n----Correlation and Similarities for spatiotemporal data - Housing Prices in the Netherlands-----")
@@ -156,7 +177,7 @@ def main():
     # Prepare housing price data per year with geographical boundaries for cities 
     path_to_shape_file = args[3] 
     start_year = 2013
-    for year_idx in range(13):    
+    for year_idx in range(11):    
         average_house_prices_per_year = average_house_prices_years[year_idx]
         year = start_year + year_idx
         print("--------{}".format(year))
@@ -166,10 +187,11 @@ def main():
         print("Successfully loaded ", path_to_shape_file)
 
         # Show cities in map. Only cities with housing prices will be shown.
-        showCitiesInMap(cities_polygons_with_house_prices, year)
+        output_folder = "Output/" + str(year)
+        showCitiesInMap(cities_polygons_with_house_prices, output_folder, year)
 
         # Main part: calculate Moran I value
-        calculateMoranI(cities_polygons_with_house_prices)
+        calculateMoranI(cities_polygons_with_house_prices, output_folder, year)
       
 if __name__ == "__main__":
     main()    
