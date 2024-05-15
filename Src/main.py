@@ -4,6 +4,7 @@ import geopandas as gpd
 import glob
 import matplotlib
 import matplotlib.pyplot as plt
+import pandas as pd
 
 import libpysal as lps
 from libpysal.weights import Queen
@@ -11,6 +12,10 @@ from libpysal.weights import Queen
 from esda.moran import Moran_Local
 from splot.esda import moran_scatterplot
 from splot.esda import lisa_cluster
+
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+from shapely.geometry import Point
 
 import os
 import shutil 
@@ -111,7 +116,7 @@ def getCitiesPolygonsWithData(path_to_shape_file, year, data_per_year, data_name
     # It is short for "keyword arguments". When defining a function, you can use the ** in front of a parameter to indicate that 
     # it should accept any number of keyword arguments.
     def records(filename, usecols, year, data_per_year, **kwargs):
-        cities_with_polygons_and_not_data_file_name_path = output_folder + "/cities_with_polygons_and_not_data_" + str(year) + ".txt" 
+        cities_with_polygons_and_not_data_file_name_path = output_folder + "/cities_with_polygons_and_not_" + data_name + "_" + str(year) + ".txt" 
         with fiona.open(filename, **kwargs) as source:
             for feature in source:
                 f = {k: feature[k] for k in ['id', 'geometry']}
@@ -132,6 +137,7 @@ def getCitiesPolygonsWithData(path_to_shape_file, year, data_per_year, data_name
                     open_file.close()
 
     cities_polygons = gpd.GeoDataFrame.from_features(records(path_to_shape_file, ['GM_CODE', 'H2O', 'OAD', 'STED', 'BEV_DICHTH', 'GM_NAAM'], year, data_per_year))
+    print (cities_polygons.crs)
     return cities_polygons
 
 def exitProgram():
@@ -142,21 +148,49 @@ def showCitiesInMap(cities_polygons_with_data, data_name, output_folder, year):
     print(type(cities_polygons_with_data))
     print(cities_polygons_with_data.columns.tolist())
 
-    # Print first 10 cities
-    print(cities_polygons_with_data.head(10))
+    # Print first 2 cities
+    print(cities_polygons_with_data.head(2))
+    print(cities_polygons_with_data.crs)
 
-    cities_polygons_with_data.plot()
+    important_cities_df = pd.DataFrame(
+        {
+            "City": ["Amsterdam"],
+            "Latitude": [487197.871781],  
+            "Longitude": [121488.689806] 
+        }
+    )
+
+    important_cities_gdf = gpd.GeoDataFrame(
+        important_cities_df, geometry=gpd.points_from_xy(important_cities_df.Longitude, important_cities_df.Latitude), crs="EPSG:28992" #Amersfoort coordinate system
+    )
+
+    # We can now plot our ``GeoDataFrame``.
+    base = cities_polygons_with_data.plot()
+    important_cities_gdf.plot(ax=base, color="red")
 
     save_plot_file_name = "cities_polygon_" + str(year)
     plt.savefig(output_folder + '/' + save_plot_file_name)
 
-    cities_polygons_with_data.boundary.plot()
+    ax = cities_polygons_with_data.boundary.plot()
+    ax.set_axis_off()
     save_plot_file_name = "cities_polygon_boundaries_" + str(year) 
     #plt.show()
     plt.savefig(output_folder + '/' + save_plot_file_name)
 
     # Plot by data
-    cities_polygons_with_data.plot(column=data_name, legend=True)
+    fig, ax = plt.subplots(1, 1)
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("bottom", size="5%", pad=0.1)
+    base = cities_polygons_with_data.plot(
+        column=data_name, 
+        ax=ax,
+        legend=True,
+        cax=cax,
+        legend_kwds={"label": "House prices in " + str(year), "orientation": "horizontal"}
+    )
+
+    important_cities_gdf.plot(ax=base, color="red")
+
     save_plot_file_name = "choropleth_map_" + data_name + "_" + str(year) 
     plt.savefig(output_folder + '/' + save_plot_file_name)
 
@@ -180,6 +214,7 @@ def calculateMoranI(cities_polygons_with_data, data_name, output_folder, year):
     print("Moran spatial autocorrelation between cities")
     print(moran_loc)
 
+    print("Moran I value{} with I = {}!".format(round(moran_loc.I, 3)))
     print("Moran EI value{}!".format(moran_loc.EI))
 
     fig, ax = moran_scatterplot(moran_loc)
@@ -216,7 +251,7 @@ def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
     print("Successfully loaded ", path_to_house_prices_csv_file)
 
     start_year = 2013
-    for year_idx in range(11):    
+    for year_idx in range(1):    
         house_prices_per_year = house_prices_years[year_idx]
         year = start_year + year_idx
         print("--------{}".format(year))
@@ -240,8 +275,8 @@ def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
         # Show cities in map. Only cities with housing prices will be shown.
         showCitiesInMap(cities_polygons_with_house_prices, data_name, output_housing_price_folder, year)
 
-        # Main part: calculate Moran I value
-        calculateMoranI(cities_polygons_with_house_prices, data_name, output_housing_price_folder, year)
+        # Main part: calculate local Moran I value
+        calculateLocalMoranI(cities_polygons_with_house_prices, data_name, output_housing_price_folder, year)
 
 def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
     # Load immigration from csv file
@@ -250,7 +285,7 @@ def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
     print("Successfully loaded ", path_to_immigration_csv_file)
 
     start_year = 2013
-    for year_idx in range(10):    
+    for year_idx in range(1):    
         immigration_per_year = immigration_all_years[year_idx]
         year = start_year + year_idx
         print("--------{}".format(year))
