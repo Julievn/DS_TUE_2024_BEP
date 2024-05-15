@@ -5,43 +5,6 @@ import glob
 import os
 import sys
 
-# Read a csv file containing house prices for all cities in the Netherlands.
-# Return a list of dictionaries. Each element is a dictionary. Each dictionary is a list of cities with house prices.
-def readCsvHousePrice(path_to_house_prices_file):
-    # create a list of dictionaries. Each element is a dictionary. Each dictionary is a list of cities with house prices.
-    average_house_prices_years = [] 
-    start_year = 2013
-
-    special_municipality_mapping = {"'s-Gravenhage (municipality)": "'s-Gravenhage",
-                                    "Groningen (municipality)": "Groningen",
-                                    "Utrecht (municipality)" : "Utrecht",
-                                    "Laren (NH.)" : "Laren",
-                                    "Rijswijk (ZH.)" : "Rijswijk",
-                                    "Beek (L.)" : "Beek",
-                                    "Stein (L.)" : "Stein"}
-
-    with open(path_to_house_prices_file, newline='', encoding='utf-8') as csvfile:
-        csv_reader = csv.reader(csvfile, delimiter=';', quotechar='|')
-        next(csv_reader, None)  # skip the headers
-        for row in csv_reader:     
-            if ((len(row) == 3) and (row[2].isdigit())):
-                current_year = int(row[0].replace('"', ''))
-                current_city = row[1].replace('"', '')
-                current_price = int(row[2])
-
-                # Some names in the geographical file and the housing price file are not the same. So we need to do this mapping.
-                if current_city in special_municipality_mapping:
-                    current_city = special_municipality_mapping[current_city]
-
-                year_idx = current_year -start_year
-                if (len(average_house_prices_years) == year_idx):
-                    average_house_prices_per_year = {current_city: current_price}
-                    average_house_prices_years.append(average_house_prices_per_year)
-                else:
-                    average_house_prices_per_year = average_house_prices_years[current_year -start_year]
-                    average_house_prices_per_year[current_city] = current_price
-    return average_house_prices_years
-
 # Read a csv file containing immigration for all cities in the Netherlands.
 # Return a list of dictionaries. Each element is a dictionary. Each dictionary is a list of cities with immigration.
 def readCsvImmigration(path_to_immigration_file):
