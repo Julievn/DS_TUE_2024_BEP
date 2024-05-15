@@ -194,7 +194,7 @@ def showCitiesInMap(cities_polygons_with_data, data_name, output_folder, year):
     save_plot_file_name = "choropleth_map_" + data_name + "_" + str(year) 
     plt.savefig(output_folder + '/' + save_plot_file_name)
 
-def calculateMoranI(cities_polygons_with_data, data_name, output_folder, year):
+def calculateLocalMoranI(cities_polygons_with_data, data_name, output_folder, year):
      # Calculate weight matrix from the GeoDataFrame using Queen approach
     queen_weight_matrix = Queen.from_dataframe(cities_polygons_with_data)
 
@@ -214,7 +214,8 @@ def calculateMoranI(cities_polygons_with_data, data_name, output_folder, year):
     print("Moran spatial autocorrelation between cities")
     print(moran_loc)
 
-    print("Moran I value{} with I = {}!".format(round(moran_loc.I, 3)))
+    # for each municipality, there is a relating Local Moran’s I value, 
+    # as well as its own variance, z value, expected I, and variance of I
     print("Moran EI value{}!".format(moran_loc.EI))
 
     fig, ax = moran_scatterplot(moran_loc)
@@ -303,7 +304,7 @@ def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
         showCitiesInMap(cities_polygons_with_immigration, data_name, output_immigration_folder, year)
 
          # Main part: calculate Moran I value
-        calculateMoranI(cities_polygons_with_immigration, data_name, output_immigration_folder, year)
+        calculateLocalMoranI(cities_polygons_with_immigration, data_name, output_immigration_folder, year)
 
 def main():
     print("\n----Correlation and Similarities for spatiotemporal data - Housing Prices in the Netherlands-----")
