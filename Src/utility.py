@@ -3,11 +3,12 @@ import fiona
 import geopandas as gpd
 import glob
 import os
+import shutil
 import sys
 
-# Data is a dictionary
-def exportDataToFile(data, data_name, file_path):
-    field_names = ['Regions', data_name]
+# data is a dictionary
+# field_names is a row with 2 columns
+def exportDataToFile(data, field_names, file_path):
     with open(file_path, 'w') as csvfile:
         writer = csv.writer(csvfile)
 
@@ -20,18 +21,13 @@ def exportDataToFile(data, data_name, file_path):
 
 def CreateOutputFolderIfNeeded(output_folder):
     if os.path.exists(output_folder):
-        print("Directory '%s' exists. So removing its existing contents" % output_folder)
-        files = glob.glob(output_folder + '/*')
-        for f in files:
-            print (f)
-            os.remove(f)
+        shutil.rmtree(output_folder)
  
-    if not os.path.exists(output_folder):
-        try:
-            os.makedirs(output_folder)
-            print("Directory '%s' created" % output_folder)
-        except OSError as error:
-            print("Directory '%s' can not be created" % output_folder)
+    try:
+        os.makedirs(output_folder)
+        print("Directory '%s' created" % output_folder)
+    except OSError as error:
+        print("Directory '%s' can not be created" % output_folder)
 
 def getCitiesPolygonsWithData(path_to_shape_file, year, data_per_year, data_name, output_folder):    
     # kwargs in Python is a special syntax that allows you to pass a keyworded, variable-length argument dictionary to a function. 

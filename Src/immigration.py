@@ -49,6 +49,9 @@ def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
     immigration_all_years = readCsvImmigration(path_to_immigration_csv_file)
     print("Successfully loaded ", path_to_immigration_csv_file)
 
+    output_immigration_folder = "Output/Immigration/"
+    CreateOutputFolderIfNeeded(output_immigration_folder)
+
     start_year = 2013
     for year_idx in range(1):    
         immigration_per_year = immigration_all_years[year_idx]
@@ -56,16 +59,16 @@ def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
         print("--------{}".format(year))
 
         # Prepare output immigration folder
-        output_immigration_folder = "Output/Immigration/" + str(year)
-        CreateOutputFolderIfNeeded(output_immigration_folder)
+        output_immigration_folder_per_year = output_immigration_folder + str(year)
+        CreateOutputFolderIfNeeded(output_immigration_folder_per_year)
 
         # Keep only cities with immigration data
         data_name = "Immigration"
-        cities_polygons_with_immigration = getCitiesPolygonsWithData(path_to_shape_file, year, immigration_per_year, data_name, output_immigration_folder)
+        cities_polygons_with_immigration = getCitiesPolygonsWithData(path_to_shape_file, year, immigration_per_year, data_name, output_immigration_folder_per_year)
         print("Successfully loaded ", path_to_shape_file)
 
         # Show cities in map. Only cities with housing prices will be shown.
-        showCitiesInMap(cities_polygons_with_immigration, data_name, output_immigration_folder, year)
+        showCitiesInMap(cities_polygons_with_immigration, data_name, output_immigration_folder_per_year, year)
 
          # Main part: calculate Global Moran I value
         calculateGlobalMoranI(cities_polygons_with_immigration, data_name, output_immigration_folder, year)
