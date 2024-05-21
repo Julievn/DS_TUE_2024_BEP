@@ -19,7 +19,8 @@ def readCsvImmigration(path_to_immigration_file):
                                     "Rijswijk (ZH.)" : "Rijswijk",
                                     "Beek (L.)" : "Beek",
                                     "Stein (L.)" : "Stein",
-                                    "Middelburg (Z.)" : "Middelburg"}
+                                    "Middelburg (Z.)" : "Middelburg",
+                                    "Hengelo (O.)" : "Hengelo"}
 
     with open(path_to_immigration_file, newline='', encoding='utf-8') as csvfile:
         csv_reader = csv.reader(csvfile, delimiter=';', quotechar='|')
