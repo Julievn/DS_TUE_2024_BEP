@@ -42,20 +42,23 @@ def getCitiesPolygonsWithData(path_to_shape_file, year, data_per_year, data_name
                 city_name = f['properties']['GM_NAAM']
 
                 # dictionary with key, value pair. For example, Aa en Hunze -> 213176
-                if city_name in data_per_year: # only display cities with housing prices
+                if city_name in data_per_year and f['properties']['H2O'] == "NEE": # only display cities with housing prices and not water boundaries
                     f['properties']['Year'] = year
                     f['properties'][data_name] = data_per_year[city_name]
                     yield f
                 else:
-                    print("SKIp city '%s' as DOES NOT have data" % city_name)
+                    print("SKIp city '%s' as DOES NOT have data or it's just water boundary" % city_name)
                     print (f)
                     open_file = open(cities_with_polygons_and_not_data_file_name_path, "a")
-                    open_file.write(city_name  + " " + f['id']  + " " + f['properties']['GM_CODE'])
+                    if f['properties']['H2O'] == "NEE":
+                        open_file.write(city_name  + "              " + f['id']  + "        " + f['properties']['GM_CODE'] + "      " + "LAND")
+                    else:    
+                        open_file.write(city_name  + "              " + f['id']  + "        " + f['properties']['GM_CODE'] + "      " + "WATER")
+                    
                     open_file.write("\n")
                     open_file.close()
 
-    cities_polygons = gpd.GeoDataFrame.from_features(records(path_to_shape_file, ['GM_CODE', 'H2O', 'OAD', 'STED', 'BEV_DICHTH', 'GM_NAAM'], year, data_per_year))
-    print (cities_polygons.crs)
+    cities_polygons = gpd.GeoDataFrame.from_features(records(path_to_shape_file, ['GM_CODE', 'GM_NAAM', 'H2O'], year, data_per_year))
     return cities_polygons
 
 def exitProgram():
