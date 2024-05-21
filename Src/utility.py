@@ -58,7 +58,9 @@ def getCitiesPolygonsWithData(path_to_shape_file, year, data_per_year, data_name
                     open_file.write("\n")
                     open_file.close()
 
-    cities_polygons = gpd.GeoDataFrame.from_features(records(path_to_shape_file, ['GM_CODE', 'GM_NAAM', 'H2O'], year, data_per_year))
+    # https://epsg.io/28992
+    cities_polygons = gpd.GeoDataFrame.from_features(records(path_to_shape_file, ['GM_CODE', 'GM_NAAM', 'H2O'], year, data_per_year)).set_crs('epsg:28992')
+    print (cities_polygons.crs)
     return cities_polygons
 
 def exitProgram():
