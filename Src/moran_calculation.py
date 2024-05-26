@@ -17,32 +17,39 @@ from matplotlib import colors
 
 import matplotlib.pyplot as plt
 
-def calculateGlobalMoranI(cities_polygons_with_data, data_name, output_folder, year):
-     # Calculate weight matrix from the GeoDataFrame using Queen approach
-    queen_weight_matrix = Queen.from_dataframe(cities_polygons_with_data)
+def calculateGlobalMoranI(municipalities_polygons_with_data, data_name, output_folder, year):
+    # Calculate weight matrix from the GeoDataFrame using Queen approach
+    queen_weight_matrix = Queen.from_dataframe(municipalities_polygons_with_data)
 
-    print(type(cities_polygons_with_data))
-    print(type(cities_polygons_with_data['GM_NAAM'].values))
-    print(cities_polygons_with_data['GM_NAAM'].values)
+    # Then we transform our weights to be row-standardized.
+    # Each weight is divided by its row sum (the sum of the weights of all neighboring features). 
+    # Row standardized weighting is often used with fixed distance neighborhoods and almost always used for neighborhoods 
+    # based on polygon contiguity.
+    queen_weight_matrix.transform = 'r'
+
+    print(type(municipalities_polygons_with_data))
+    print(type(municipalities_polygons_with_data['GM_NAAM'].values))
+    print(municipalities_polygons_with_data['GM_NAAM'].values)
 
     # <class 'pandas.core.series.Series'> when used inside this function.
     # Outside this function is numpy array    
-    print(type(cities_polygons_with_data[data_name]))
-    print("Housing price values for year {}".format(year))
-    print(cities_polygons_with_data[data_name].values)
+    print(type(municipalities_polygons_with_data[data_name]))
+    print(data_name + " values for year {}".format(year))
+    print(municipalities_polygons_with_data[data_name].values)
 
     # house_prices = cities_polygons_with_house_prices['Average_House_Price'].to_numpy()
     #print(type(house_prices))
 
-    moran_global = Moran(cities_polygons_with_data[data_name].values, queen_weight_matrix)
+    moran_global = Moran(municipalities_polygons_with_data[data_name].values, queen_weight_matrix)
     print("Glocal Moran spatial autocorrelation for {} between municipalities".format(data_name))
     print(moran_global)
 
     # For all municipalities, there is only one average Global Moran’s I value, 
-    dataset_size = len(cities_polygons_with_data['GM_NAAM'].values) 
+    dataset_size = len(municipalities_polygons_with_data['GM_NAAM'].values) 
     expect_moran_value = -1/(dataset_size - 1)
     print("Expected value of Moran is {}!".format(expect_moran_value))
     print("Global Moran I value = {}!".format(round(moran_global.I, 3)))
+    print("Our observed value p = {}, z = {}. So the global I Moran value can be statistically or NOT significant".format(moran_global.p_sim, moran_global.z_sim))
 
     spatial_correlation = None
     if moran_global.I > expect_moran_value:
@@ -52,16 +59,11 @@ def calculateGlobalMoranI(cities_polygons_with_data, data_name, output_folder, y
         spatial_correlation = 'Negative spatial correlations'
         print("Negative spatial correlations!")
 
-    moran_file_path = output_folder + 'Global_Moran_I.txt'
-    open_file = open(moran_file_path, "a")
-
-    if year == 2013:
-        open_file.write("Period" + "    " + "Expected Moran Value"  + "    " + "Moral Global I"  + "        " + "Spatial correlation")
-        open_file.write("\n")
-
-    open_file.write(str(year) + "     " + str(expect_moran_value)  + "    " + str(round(moran_global.I, 3))  + "    " + str(spatial_correlation))
-    open_file.write("\n")
-    open_file.close()
+    moran_file_path = output_folder + 'Global_Moran_I.csv'
+    field_names = ['Period', 'Expected Moran Value', 'Moral Global I', 'Spatial correlation', 'p-value', 'z-score']
+    global_moran_i_results = [[year, expect_moran_value, round(moran_global.I, 3), str(spatial_correlation), moran_global.p_sim, moran_global.z_sim]]
+    print(type(global_moran_i_results))
+    exportDataToCSVFile(global_moran_i_results, field_names, moran_file_path, 'w')
 
     print("Moran EI value{}!".format(moran_global.EI))
 
@@ -158,7 +160,8 @@ def calculateLocalMoranI(municipalities_polygons_with_data, data_name, output_fo
     print("There is total {} data".format(len(municipalities_polygons_with_data[data_name].values)))
     #print(cities_polygons_with_data[data_name].values)
 
-    moran_loc = Moran_Local(municipalities_polygons_with_data[data_name].values, queen_weight_matrix)
+    num_permutations = 1
+    moran_loc = Moran_Local(municipalities_polygons_with_data[data_name].values, queen_weight_matrix, 'R', num_permutations)
     print("Local Moran spatial autocorrelation for {} between municipalities".format(data_name))
     print(dir(moran_loc))
     #print(moran_loc)
@@ -200,11 +203,11 @@ def calculateLocalMoranI(municipalities_polygons_with_data, data_name, output_fo
     field_names = ['Municipality', data_name]
     low_high_spots = {k: v for k, v in municipality_labeled_wtih_quadrants.items() if v == 2}
 
-    exportDataToCSVFile(low_high_spots.items(), field_names, output_folder_per_year + "/" + data_name + "_" + str(year) + ".csv")
+    exportDataToCSVFile(low_high_spots.items(), field_names, output_folder_per_year + "/" + data_name + "_" + str(year) + ".csv", 'w')
 
     # Export High Low - 1 HH, 2 LH, 3 LL, 4 HL
     data_name = "High_Low"
     field_names = ['Municipality', data_name]
     low_high_spots = {k: v for k, v in municipality_labeled_wtih_quadrants.items() if v == 4}
 
-    exportDataToCSVFile(low_high_spots.items(), field_names, output_folder_per_year + "/" + data_name + "_" + str(year) + ".csv")
+    exportDataToCSVFile(low_high_spots.items(), field_names, output_folder_per_year + "/" + data_name + "_" + str(year) + ".csv", 'w')
