@@ -8,7 +8,7 @@ from utility import *
 # Read a csv file containing immigration for all cities in the Netherlands.
 # Return a list of dictionaries. Each element is a dictionary. Each dictionary is a list of cities with immigration.
 def readCsvImmigration(path_to_immigration_file):
-    # create a list of dictionaries. Each element is a dictionary. Each dictionary is a list of cities with house prices.
+    # create a list of dictionaries. Each element is a dictionar which  is a list of cities with data for that year.
     immigration_all_years = [] 
     start_year = 2013
 
