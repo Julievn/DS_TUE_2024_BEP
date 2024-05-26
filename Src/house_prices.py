@@ -129,7 +129,7 @@ def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
     print("Successfully loaded ", path_to_house_prices_csv_file)
 
     start_year = 2013
-    for year_idx in range(1):    
+    for year_idx in range(11):    
         house_prices_per_year = house_prices_years[year_idx]
         year = start_year + year_idx
         print("--------{}".format(year))
@@ -141,11 +141,17 @@ def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
         # Export data (i.e house price per municipality) to file
         data_name = "House_Price"
         field_names = ['Regions', data_name]
-        exportDataToFile(house_prices_per_year, field_names, output_housing_price_folder_per_year + "/" + data_name + "_" + str(year))
+        exportDataToCSVFile(house_prices_per_year.items(), field_names, output_housing_price_folder_per_year + "/" + data_name + "_" + str(year) + ".csv")
 
         # Export municipalities with most expensive house prices
         most_expensive_cities = {key:val for key, val in house_prices_per_year.items() if val >= 500000}
-        exportDataToFile(most_expensive_cities, field_names, output_housing_price_folder_per_year + "/most_expensive_" + data_name + "_" + str(year))
+        exportDataToCSVFile(most_expensive_cities.items(), field_names, output_housing_price_folder_per_year + "/most_expensive_" + data_name + "_" + str(year) + ".csv")
+
+        top_ten_least_expensive_municipalities = sorted(house_prices_per_year.items(), key=lambda item: item[1])[:10]
+        exportDataToCSVFile(top_ten_least_expensive_municipalities, field_names, output_housing_price_folder_per_year + "/top_ten_least_expensive_" + data_name + "_" + str(year) + ".csv")
+
+        top_ten_most_expensive_municipalities = sorted(house_prices_per_year.items(), key=lambda item: item[1], reverse = True)[:10]
+        exportDataToCSVFile(top_ten_most_expensive_municipalities, field_names, output_housing_price_folder_per_year + "/top_ten_most_expensive_" + data_name + "_" + str(year) + ".csv")
 
         # Keep only cities with housing prices 
         cities_polygons_with_house_prices = getCitiesPolygonsWithData(path_to_shape_file, year, house_prices_per_year, data_name, output_housing_price_folder)

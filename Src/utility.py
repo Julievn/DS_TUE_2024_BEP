@@ -6,23 +6,18 @@ import os
 import shutil
 import sys
 
-# data is a dictionary
+# data is a list
 # field_names is a row with 2 columns
-def exportDataToFile(data, field_names, file_path):
-    with open(file_path, 'w') as csvfile:
-        writer = csv.writer(csvfile)
-
-        # writing the fields
+def exportDataToCSVFile(data, field_names, file_path):
+    # Opening the file with newline='' on all platforms to disable universal newlines translation
+    with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile, delimiter=',') # Excel supports ',' and not tab
         writer.writerow(field_names)
-
-        # writing the data rows
-        print(type(data))
-        writer.writerows(data.items())
+        writer.writerows(data)
 
 def CreateOutputFolderIfNeeded(output_folder):
     if os.path.exists(output_folder):
         shutil.rmtree(output_folder)
- 
     try:
         os.makedirs(output_folder)
         print("Directory '%s' created" % output_folder)

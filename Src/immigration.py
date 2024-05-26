@@ -54,7 +54,7 @@ def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
     CreateOutputFolderIfNeeded(output_immigration_folder)
 
     start_year = 2013
-    for year_idx in range(1):    
+    for year_idx in range(10):    
         immigration_per_year = immigration_all_years[year_idx]
         year = start_year + year_idx
         print("--------{}".format(year))
