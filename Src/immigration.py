@@ -23,13 +23,16 @@ def readCsvImmigration(path_to_immigration_file):
                                     "Hengelo (O.)" : "Hengelo"}
 
     with open(path_to_immigration_file, newline='', encoding='utf-8') as csvfile:
-        csv_reader = csv.reader(csvfile, delimiter=';', quotechar='|')
+        csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
         next(csv_reader, None)  # skip the headers
         for row in csv_reader:     
-            if ((len(row) == 4) and (row[3].isdigit())):
-                current_year = int(row[1].replace('"', ''))
-                current_city = row[2].replace('"', '')
-                current_immigration = int(row[3])
+            print ("Row {} with {} columns".format(row, len(row)))
+            if ((len(row) == 3) and (row[2].isdigit())):
+                current_year = int(row[0].replace('"', ''))
+                current_city = row[1].replace('"', '')
+                current_immigration = int(row[2])
+
+                print ("Immigration current_city {}".format(current_city))
 
                 # Some names in the geographical file and the housing price file are not the same. So we need to do this mapping.
                 if current_city in special_municipality_mapping:
@@ -48,7 +51,7 @@ def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
     # Load immigration from csv file
     print("Loading ", path_to_immigration_csv_file)
     immigration_all_years = readCsvImmigration(path_to_immigration_csv_file)
-    print("Successfully loaded ", path_to_immigration_csv_file)
+    print("Successfully loaded {} for {} year".format(path_to_immigration_csv_file, len(immigration_all_years)))
 
     output_immigration_folder = "Output/Immigration/"
     CreateOutputFolderIfNeeded(output_immigration_folder)

@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from scipy import stats
 
 
-def substituteMissingDataWithGuessedOne(data_all_years, data_name, output_folder, start_year):
+def substituteMissingDataWithGuessedOne(data_all_years, data_name, output_folder, start_year, end_year):
     print("data_all_years has {} years".format(len(data_all_years)))
     # Creating an empty dictionary wich each element is a list of housing prices of a municipality for all years.
     data_municipalities = {}
@@ -30,8 +30,9 @@ def substituteMissingDataWithGuessedOne(data_all_years, data_name, output_folder
                data_municipalities[municipality_name] = [year_with_data]   
         year_idx += 1
 
-    output_housing_price_regression_model_folder = output_folder + 'RegressionModel/'
-    CreateOutputFolderIfNeeded(output_housing_price_regression_model_folder)
+    output_data_regression_model_folder = output_folder + 'RegressionModel/'
+    CreateOutputFolderIfNeeded(output_data_regression_model_folder)
+    year_period = (end_year - start_year + 1)
     for municipality in data_municipalities:
         # This municipality does not have complete housing prices. So can use regression models to replace missing house prices with
         # reasonable guesses
@@ -39,7 +40,7 @@ def substituteMissingDataWithGuessedOne(data_all_years, data_name, output_folder
         if num_data_in_this_municipality < 11 and num_data_in_this_municipality > 3:
             print ("{} do not have complete housing prices. Running regression model to calculate guessed housing prices".format(municipality))
             house_prices = []
-            years_with_missing_data = [2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023]
+            years_with_missing_data = list(range(start_year, end_year + 1))
             years_with_data = []
             for year_with_data in data_municipalities[municipality]:
                 year = list(year_with_data.keys())[0]
@@ -54,13 +55,13 @@ def substituteMissingDataWithGuessedOne(data_all_years, data_name, output_folder
             # Linear regression models using existing data
             slope, intercept, r, p, std_err = stats.linregress(years_with_data, house_prices)
 
-            def calculateHousePriceForYear(year):
+            def calculateDataForYear(year):
                 return slope * year + intercept
 
-            mymodel = list(map(calculateHousePriceForYear, years_with_data))
+            mymodel = list(map(calculateDataForYear, years_with_data))
             plt.scatter(years_with_data, house_prices)
             plt.plot(years_with_data, mymodel)
-            plt.savefig(output_housing_price_regression_model_folder + "regression_model_" + municipality)
+            plt.savefig(output_data_regression_model_folder + "regression_model_" + municipality)
 
             fig, ax = plt.subplots()
             ax.scatter(years_with_data, house_prices, c='blue', label='existing housing prices',
@@ -71,7 +72,7 @@ def substituteMissingDataWithGuessedOne(data_all_years, data_name, output_folder
             for year_with_missing_data in years_with_missing_data:
                 # Substitude missing data with guessed one
                 print ("calculate " + data_name + " for year {}".format(year_with_missing_data))
-                guessed_house_price = calculateHousePriceForYear(year_with_missing_data)
+                guessed_house_price = calculateDataForYear(year_with_missing_data)
                 data_per_year = data_all_years[year_with_missing_data - start_year]
                 data_per_year[municipality] = guessed_house_price
 
@@ -83,7 +84,7 @@ def substituteMissingDataWithGuessedOne(data_all_years, data_name, output_folder
             ax.scatter(years_with_data, house_prices, c='red', label='guessed ' + data_name,
                         alpha=0.7, edgecolors='none')
             
-            mymodel = list(map(calculateHousePriceForYear, years_with_data))
+            mymodel = list(map(calculateDataForYear, years_with_data))
             ax.scatter(years_with_data, house_prices, c=colors)
             plt.legend()
             plt.title("Regression model " + data_name + " for " + municipality)
@@ -91,18 +92,16 @@ def substituteMissingDataWithGuessedOne(data_all_years, data_name, output_folder
             plt.ylabel(data_name, size=15)
             plt.tight_layout()
             ax.plot(years_with_data, mymodel)
-            plt.savefig(output_housing_price_regression_model_folder + '/' + "data_substitution_use_regression_model_" + municipality)
+            plt.savefig(output_data_regression_model_folder + '/' + "data_substitution_use_regression_model_" + municipality)
     return data_all_years
 
-# Read a csv file containing house prices for all cities in the Netherlands.
+# Read a csv file containing data for all municipalities in the Netherlands.
+# The csv must contain 3 columns: Period, Municipality, Data using ',' as the delimiter
 # Return a list of dictionaries. Each element is a dictionary. Each dictionary is a list of cities with house prices.
-def readCsvHousePrice(path_to_house_prices_file, output_folder):
+def readCsvHousePrice(path_to_csv_file, output_folder):
     # create a list of dictionaries. Each element is a dictionary which is a list of cities with house prices for a particular year.
-    house_prices_years = [] 
+    data_years = [] 
     start_year = 2013
-
-    # Creating an empty dictionary wich each element is a list of housing prices of a municipality for all years.
-    house_prices_municipalities = {}
 
     special_municipality_mapping = {"'s-Gravenhage (municipality)": "'s-Gravenhage",
                                     "Groningen (municipality)": "Groningen",
@@ -113,35 +112,27 @@ def readCsvHousePrice(path_to_house_prices_file, output_folder):
                                     "Stein (L.)" : "Stein",
                                     "Hengelo (O.)" : "Hengelo"}
 
-    with open(path_to_house_prices_file, newline='', encoding='utf-8') as csvfile:
+    with open(path_to_csv_file, newline='', encoding='utf-8') as csvfile:
         csv_reader = csv.reader(csvfile, delimiter=';', quotechar='|')
         next(csv_reader, None)  # skip the headers
         for row in csv_reader:     
             if ((len(row) == 3) and (row[2].isdigit())):
                 current_year = int(row[0].replace('"', ''))
-                current_city = row[1].replace('"', '')
+                current_municipality = row[1].replace('"', '')
                 current_price = int(row[2])
 
                 # Some names in the geographical file and the housing price file are not the same. So we need to do this mapping.
-                if current_city in special_municipality_mapping:
-                    current_city = special_municipality_mapping[current_city]
+                if current_municipality in special_municipality_mapping:
+                    current_municipality = special_municipality_mapping[current_municipality]
 
                 year_idx = current_year -start_year
-                if (len(house_prices_years) == year_idx):
-                    house_prices_per_year = {current_city: current_price}
-                    house_prices_years.append(house_prices_per_year)
+                if (len(data_years) == year_idx):
+                    data_per_year = {current_municipality: current_price}
+                    data_years.append(data_per_year)
                 else:
-                    house_prices_per_year = house_prices_years[current_year -start_year]
-                    house_prices_per_year[current_city] = current_price
-
-                if current_city in house_prices_municipalities:
-                    house_price_per_municipality = house_prices_municipalities[current_city]
-                    year_with_housing_price = {current_year: current_price}
-                    house_price_per_municipality.append(year_with_housing_price)
-                else:
-                    year_with_housing_price = {current_year: current_price}
-                    house_prices_municipalities[current_city] = [year_with_housing_price]   
-    return house_prices_years
+                    data_per_year = data_years[current_year -start_year]
+                    data_per_year[current_municipality] = current_price  
+    return data_years
 
 def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
     # Load house prices from csv file
@@ -154,9 +145,11 @@ def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
     house_prices_years = readCsvHousePrice(path_to_house_prices_csv_file, output_housing_price_folder)
     print("Successfully loaded ", path_to_house_prices_csv_file)
 
+    # Substitude missing data with guessed ones
     start_year = 2013
+    end_year = 2023
     data_name = "House Price (in euros)"
-    house_prices_years = substituteMissingDataWithGuessedOne(house_prices_years, data_name, output_housing_price_folder, start_year)
+    house_prices_years = substituteMissingDataWithGuessedOne(house_prices_years, data_name, output_housing_price_folder, start_year, end_year)
 
     for year_idx in range(1):    
         house_prices_per_year = house_prices_years[year_idx]

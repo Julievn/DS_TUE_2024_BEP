@@ -159,7 +159,7 @@ def calculateLocalMoranI(municipalities_polygons_with_data, data_name, output_fo
     #print(cities_polygons_with_data[data_name].values)
 
     moran_loc = Moran_Local(municipalities_polygons_with_data[data_name].values, queen_weight_matrix)
-    print("Local Moran spatial autocorrelation for {} between cities".format(data_name))
+    print("Local Moran spatial autocorrelation for {} between municipalities".format(data_name))
     print(dir(moran_loc))
     #print(moran_loc)
     #print(moran_loc.__dict__)
