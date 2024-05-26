@@ -24,31 +24,31 @@ def CreateOutputFolderIfNeeded(output_folder):
     except OSError as error:
         print("Directory '%s' can not be created" % output_folder)
 
-def getCitiesPolygonsWithData(path_to_shape_file, year, data_per_year, data_name, output_folder):    
+def getMunicipalitiesPolygonsWithData(path_to_shape_file, year, data_per_year, data_name, output_folder):    
     # kwargs in Python is a special syntax that allows you to pass a keyworded, variable-length argument dictionary to a function. 
     # It is short for "keyword arguments". When defining a function, you can use the ** in front of a parameter to indicate that 
     # it should accept any number of keyword arguments.
     def records(filename, usecols, year, data_per_year, **kwargs):
-        cities_with_polygons_and_not_data_file_name_path = output_folder + "/cities_with_polygons_and_not_" + data_name + "_" + str(year) + ".txt" 
+        municipalities_with_polygons_and_not_data_file_name_path = output_folder + "/municipalties_with_polygons_and_not_" + data_name + "_" + str(year) + ".txt" 
         with fiona.open(filename, **kwargs) as source:
             for feature in source:
                 f = {k: feature[k] for k in ['id', 'geometry']}
                 f['properties'] = {k: feature['properties'][k] for k in usecols}
-                city_name = f['properties']['GM_NAAM']
+                municipality_name = f['properties']['GM_NAAM']
 
                 # dictionary with key, value pair. For example, Aa en Hunze -> 213176
-                if city_name in data_per_year and f['properties']['H2O'] == "NEE": # only display cities with housing prices and not water boundaries
+                if municipality_name in data_per_year and f['properties']['H2O'] == "NEE": # only display cities with housing prices and not water boundaries
                     f['properties']['Year'] = year
-                    f['properties'][data_name] = data_per_year[city_name]
+                    f['properties'][data_name] = data_per_year[municipality_name]
                     yield f
                 else:
-                    print("SKIp city '%s' as DOES NOT have data or it's just water boundary" % city_name)
+                    print("SKIp city '%s' as DOES NOT have data or it's just water boundary" % municipality_name)
                     print (f)
-                    open_file = open(cities_with_polygons_and_not_data_file_name_path, "a")
+                    open_file = open(municipalities_with_polygons_and_not_data_file_name_path, "a")
                     if f['properties']['H2O'] == "NEE":
-                        open_file.write(city_name  + "              " + f['id']  + "        " + f['properties']['GM_CODE'] + "      " + "LAND")
+                        open_file.write(municipality_name  + "              " + f['id']  + "        " + f['properties']['GM_CODE'] + "      " + "LAND")
                     else:    
-                        open_file.write(city_name  + "              " + f['id']  + "        " + f['properties']['GM_CODE'] + "      " + "WATER")
+                        open_file.write(municipality_name  + "              " + f['id']  + "        " + f['properties']['GM_CODE'] + "      " + "WATER")
                     
                     open_file.write("\n")
                     open_file.close()

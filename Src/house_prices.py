@@ -129,7 +129,7 @@ def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
     print("Successfully loaded ", path_to_house_prices_csv_file)
 
     start_year = 2013
-    for year_idx in range(11):    
+    for year_idx in range(1):    
         house_prices_per_year = house_prices_years[year_idx]
         year = start_year + year_idx
         print("--------{}".format(year))
@@ -139,29 +139,29 @@ def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
         CreateOutputFolderIfNeeded(output_housing_price_folder_per_year)
 
         # Export data (i.e house price per municipality) to file
-        data_name = "House_Price"
+        data_name = "House Price (in euros)"
         field_names = ['Regions', data_name]
         exportDataToCSVFile(house_prices_per_year.items(), field_names, output_housing_price_folder_per_year + "/" + data_name + "_" + str(year) + ".csv")
 
         # Export municipalities with most expensive house prices
-        most_expensive_cities = {key:val for key, val in house_prices_per_year.items() if val >= 500000}
-        exportDataToCSVFile(most_expensive_cities.items(), field_names, output_housing_price_folder_per_year + "/most_expensive_" + data_name + "_" + str(year) + ".csv")
+        most_expensive_municipalities = {key:val for key, val in house_prices_per_year.items() if val >= 500000}
+        exportDataToCSVFile(most_expensive_municipalities.items(), field_names, output_housing_price_folder_per_year + "/most_expensive_" + data_name + "_" + str(year) + ".csv")
 
-        top_ten_least_expensive_municipalities = sorted(house_prices_per_year.items(), key=lambda item: item[1])[:10]
-        exportDataToCSVFile(top_ten_least_expensive_municipalities, field_names, output_housing_price_folder_per_year + "/top_ten_least_expensive_" + data_name + "_" + str(year) + ".csv")
+        top_ten_least_expensive_municipalities = sorted(house_prices_per_year.items(), key=lambda item: item[1])[:5]
+        exportDataToCSVFile(top_ten_least_expensive_municipalities, field_names, output_housing_price_folder_per_year + "/top_five_least_expensive_" + data_name + "_" + str(year) + ".csv")
 
-        top_ten_most_expensive_municipalities = sorted(house_prices_per_year.items(), key=lambda item: item[1], reverse = True)[:10]
-        exportDataToCSVFile(top_ten_most_expensive_municipalities, field_names, output_housing_price_folder_per_year + "/top_ten_most_expensive_" + data_name + "_" + str(year) + ".csv")
+        top_ten_most_expensive_municipalities = sorted(house_prices_per_year.items(), key=lambda item: item[1], reverse = True)[:5]
+        exportDataToCSVFile(top_ten_most_expensive_municipalities, field_names, output_housing_price_folder_per_year + "/top_five_most_expensive_" + data_name + "_" + str(year) + ".csv")
 
         # Keep only cities with housing prices 
-        cities_polygons_with_house_prices = getCitiesPolygonsWithData(path_to_shape_file, year, house_prices_per_year, data_name, output_housing_price_folder)
+        municipalities_polygons_with_house_prices = getMunicipalitiesPolygonsWithData(path_to_shape_file, year, house_prices_per_year, data_name, output_housing_price_folder)
         print("Successfully loaded ", path_to_shape_file)
 
-        # Show cities in map. Only cities with housing prices will be shown.
-        showCitiesInMap(cities_polygons_with_house_prices, data_name, output_housing_price_folder_per_year, year)
+        # Show municipalities in map. Only municipalities with housing prices will be shown.
+        showMunicipalitiesInMap(municipalities_polygons_with_house_prices, data_name, output_housing_price_folder_per_year, year)
 
         # Main part: calculate Global Moran I value
-        calculateGlobalMoranI(cities_polygons_with_house_prices, data_name, output_housing_price_folder, year)
+        calculateGlobalMoranI(municipalities_polygons_with_house_prices, data_name, output_housing_price_folder, year)
 
         # Main part: calculate local Moran I value
-        calculateLocalMoranI(cities_polygons_with_house_prices, data_name, output_housing_price_folder, year)
+        calculateLocalMoranI(municipalities_polygons_with_house_prices, data_name, output_housing_price_folder, year)

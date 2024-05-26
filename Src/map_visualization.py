@@ -3,13 +3,13 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-def showCitiesInMap(cities_polygons_with_data, data_name, output_folder, year):
-    print(type(cities_polygons_with_data))
-    print(cities_polygons_with_data.columns.tolist())
+def showMunicipalitiesInMap(municipalities_polygons_with_data, data_name, output_folder, year):
+    print(type(municipalities_polygons_with_data))
+    print(municipalities_polygons_with_data.columns.tolist())
 
     # Print first 2 cities
-    print(cities_polygons_with_data.head(2))
-    print(cities_polygons_with_data.crs)
+    print(municipalities_polygons_with_data.head(2))
+    print(municipalities_polygons_with_data.crs)
 
     important_cities_df = pd.DataFrame(
         {
@@ -24,13 +24,13 @@ def showCitiesInMap(cities_polygons_with_data, data_name, output_folder, year):
     )
 
     # We can now plot our ``GeoDataFrame``.
-    base = cities_polygons_with_data.plot()
+    base = municipalities_polygons_with_data.plot()
     important_cities_gdf.plot(ax=base, color="red")
 
     save_plot_file_name = "cities_polygon_" + str(year)
     plt.savefig(output_folder + '/' + save_plot_file_name)
 
-    ax = cities_polygons_with_data.boundary.plot()
+    ax = municipalities_polygons_with_data.boundary.plot()
     ax.set_axis_off()
     save_plot_file_name = "cities_polygon_boundaries_" + str(year) 
     #plt.show()
@@ -40,7 +40,7 @@ def showCitiesInMap(cities_polygons_with_data, data_name, output_folder, year):
     fig, ax = plt.subplots(1, 1)
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("bottom", size="5%", pad=0.1)
-    base = cities_polygons_with_data.plot(
+    base = municipalities_polygons_with_data.plot(
         column=data_name, 
         ax=ax,
         legend=True,
