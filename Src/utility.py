@@ -29,7 +29,7 @@ def CreateOutputFolderIfNeeded(output_folder):
     except OSError as error:
         print("Directory '%s' can not be created" % output_folder)
 
-def getMunicipalitiesPolygonsWithData(path_to_shape_file, year, data_per_year, data_name, output_folder):    
+def getMunicipalitiesPolygonsWithData(path_to_shape_file, year, data_per_year, data_name, output_folder, is_set_index):    
     # kwargs in Python is a special syntax that allows you to pass a keyworded, variable-length argument dictionary to a function. 
     # It is short for "keyword arguments". When defining a function, you can use the ** in front of a parameter to indicate that 
     # it should accept any number of keyword arguments.
@@ -59,7 +59,12 @@ def getMunicipalitiesPolygonsWithData(path_to_shape_file, year, data_per_year, d
                     open_file.close()
 
     # https://epsg.io/28992
-    cities_polygons = gpd.GeoDataFrame.from_features(records(path_to_shape_file, ['GM_CODE', 'GM_NAAM', 'H2O'], year, data_per_year)).set_crs('epsg:28992')
+    # Use GM code as the index so that spatial weight matrix can conviniently use GM code to query neighbor. Otherwise, it's still ok but id 0, 1 is used. 
+    # drop=False will make exporting to Folium map fail.
+    if is_set_index:
+        cities_polygons = gpd.GeoDataFrame.from_features(records(path_to_shape_file, ['GM_CODE', 'GM_NAAM', 'H2O'], year, data_per_year)).set_crs('epsg:28992').set_index('GM_CODE', drop=False)
+    else:
+        cities_polygons = gpd.GeoDataFrame.from_features(records(path_to_shape_file, ['GM_CODE', 'GM_NAAM', 'H2O'], year, data_per_year)).set_crs('epsg:28992')
     print (cities_polygons.crs)
     return cities_polygons
 
@@ -85,8 +90,6 @@ def substituteMissingDataWithGuessedOne(data_all_years, data_name, output_folder
     for data_per_year in data_all_years: # data_per_year is a dictionary with each element: muncipality -> data
         current_year = start_year + year_idx
         for municipality_name, current_data in data_per_year.items():
-            if (municipality_name == 'Aalburg'):
-                print ("current year {}".format(current_year))
             year_with_data = {current_year: current_data}
             if municipality_name in data_municipalities:
                 data_per_municipality = data_municipalities[municipality_name] 
@@ -103,19 +106,19 @@ def substituteMissingDataWithGuessedOne(data_all_years, data_name, output_folder
         # reasonable guesses
         num_data_in_this_municipality = len(data_municipalities[municipality])
         if num_data_in_this_municipality < 11 and num_data_in_this_municipality > 3:
-            print ("{} do not have complete housing prices. Running regression model to calculate guessed housing prices".format(municipality))
+            #print ("{} do not have complete housing prices. Running regression model to calculate guessed housing prices".format(municipality))
             house_prices = []
             years_with_missing_data = list(range(start_year, end_year + 1))
             years_with_data = []
             for year_with_data in data_municipalities[municipality]:
                 year = list(year_with_data.keys())[0]
-                print("year {}".format(year))
+                #print("year {}".format(year))
                 house_prices.append(year_with_data[year])
                 years_with_data.append(year)
                 years_with_missing_data.remove(year)
-                print ("housing prices = {}".format(house_prices))
-                print ("Years with housing prices = {}".format(years_with_data))
-                print ("Years with missing housing prices = {}".format(years_with_missing_data))
+                #print ("housing prices = {}".format(house_prices))
+                #print ("Years with housing prices = {}".format(years_with_data))
+                #print ("Years with missing housing prices = {}".format(years_with_missing_data))
 
             # Linear regression models using existing data
             slope, intercept, r, p, std_err = stats.linregress(years_with_data, house_prices)
@@ -136,7 +139,7 @@ def substituteMissingDataWithGuessedOne(data_all_years, data_name, output_folder
             guessed_house_prices = []
             for year_with_missing_data in years_with_missing_data:
                 # Substitude missing data with guessed one
-                print ("calculate " + data_name + " for year {}".format(year_with_missing_data))
+                # print ("calculate " + data_name + " for year {}".format(year_with_missing_data))
                 guessed_house_price = calculateDataForYear(year_with_missing_data)
                 data_per_year = data_all_years[year_with_missing_data - start_year]
                 data_per_year[municipality] = guessed_house_price

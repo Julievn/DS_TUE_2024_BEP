@@ -32,8 +32,6 @@ def readCsvImmigration(path_to_immigration_file):
                 current_city = row[1].replace('"', '')
                 current_immigration = int(row[2])
 
-                print ("Immigration current_city {}".format(current_city))
-
                 # Some names in the geographical file and the housing price file are not the same. So we need to do this mapping.
                 if current_city in special_municipality_mapping:
                     current_city = special_municipality_mapping[current_city]
@@ -57,7 +55,7 @@ def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
     CreateOutputFolderIfNeeded(output_immigration_folder)
 
     start_year = 2013
-    for year_idx in range(1):    
+    for year_idx in range(0):    
         immigration_per_year = immigration_all_years[year_idx]
         year = start_year + year_idx
         print("--------{}".format(year))

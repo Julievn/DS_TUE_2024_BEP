@@ -46,15 +46,29 @@ def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
         top_ten_most_expensive_municipalities = sorted(house_prices_per_year.items(), key=lambda item: item[1], reverse = True)[:5]
         exportDataToCSVFile(top_ten_most_expensive_municipalities, field_names, output_housing_price_folder_per_year + "/top_five_most_expensive_" + data_name + "_" + str(year) + ".csv", 'w')
 
-        # Keep only cities with housing prices 
-        municipalities_polygons_with_house_prices = getMunicipalitiesPolygonsWithData(path_to_shape_file, year, house_prices_per_year, data_name, output_housing_price_folder)
+        # Keep only municipalities with housing prices 
+        municipalities_polygons_with_house_prices = getMunicipalitiesPolygonsWithData(path_to_shape_file, year, house_prices_per_year, data_name, output_housing_price_folder, True)
         print("Successfully loaded ", path_to_shape_file)
 
         # Show municipalities in map. Only municipalities with housing prices will be shown.
         showMunicipalitiesInMap(municipalities_polygons_with_house_prices, data_name, output_housing_price_folder_per_year, year)
 
+        id_variable = "GM_CODE"
+        islands = getIslandFromQueenWeightMatrix(municipalities_polygons_with_house_prices, id_variable, output_housing_price_folder, year)
+        municipalities_polygons_with_house_prices_without_islands = municipalities_polygons_with_house_prices.drop(islands)
+
         # Main part: calculate Global Moran I value
-        calculateGlobalMoranI(municipalities_polygons_with_house_prices, data_name, output_housing_price_folder, year)
+        calculateGlobalMoranI(municipalities_polygons_with_house_prices_without_islands, data_name, id_variable, output_housing_price_folder, year)
 
         # Main part: calculate local Moran I value
-        calculateLocalMoranI(municipalities_polygons_with_house_prices, data_name, output_housing_price_folder, year)
+        local_moran_result = calculateLocalMoranI(municipalities_polygons_with_house_prices_without_islands, data_name, id_variable, output_housing_price_folder, year)
+
+         # Keep only municipalities with housing prices 
+        print ("ISLANDS HERE") 
+        print (type(islands)) 
+        print (islands) 
+        municipalities_polygons_with_house_prices_for_folium_map = getMunicipalitiesPolygonsWithData(path_to_shape_file, year, house_prices_per_year, data_name, output_housing_price_folder, False)
+        islands_using_default_index = getIslandFromQueenWeightMatrix(municipalities_polygons_with_house_prices_for_folium_map, "", "", year)
+
+        municipalities_polygons_with_house_prices_for_folium_map_without_islands = municipalities_polygons_with_house_prices_for_folium_map.drop(islands_using_default_index)
+        exportFoliumLisaMap(municipalities_polygons_with_house_prices_for_folium_map_without_islands, data_name, local_moran_result, output_housing_price_folder_per_year, year)

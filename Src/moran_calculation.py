@@ -17,15 +17,45 @@ from matplotlib import colors
 
 import matplotlib.pyplot as plt
 
-def calculateGlobalMoranI(municipalities_polygons_with_data, data_name, output_folder, year):
-    # Calculate weight matrix from the GeoDataFrame using Queen approach
-    queen_weight_matrix = Queen.from_dataframe(municipalities_polygons_with_data)
+
+def getIslandFromQueenWeightMatrix(municipalities_polygons_with_data, id_variable, output_folder, year):
+    print("Top items in municipalities_polygons_with_data {}".format(municipalities_polygons_with_data.head(7)))
+    if id_variable != "":
+        queen_weight_matrix = Queen.from_dataframe(municipalities_polygons_with_data, idVariable=id_variable)
+        # GM0060 is the island. Its id is 6.
+        print("Neighbors of GM0060 {} ".format(queen_weight_matrix['GM0060']))
+    else:
+        queen_weight_matrix = Queen.from_dataframe(municipalities_polygons_with_data)
+        print("Using default index, neighbors of GM0060 {} ".format(municipalities_polygons_with_data[6]))
+        print("Using default index, neighbors of GM0060 {} ".format(queen_weight_matrix[6]))
+    
+    if output_folder != "":
+        municipalities_polygons_with_data.loc[queen_weight_matrix.islands, :].plot(color='red')
+        save_plot_file_name = "island_global_moran_weight_matrix_" + str(year)
+        output_folder_per_year = output_folder + '/' + str(year)
+        plt.savefig(output_folder_per_year + '/' + save_plot_file_name)
+
+    return queen_weight_matrix.islands
+
+def calculateQueenWeightMatrix(municipalities_polygons_with_data, data_name, id_variable, output_folder, year):
+      # Calculate weight matrix from the GeoDataFrame using Queen approach
+    queen_weight_matrix = Queen.from_dataframe(municipalities_polygons_with_data, idVariable='GM_CODE')
+
+    print("Calculate weight matrix for {} ".format(data_name, queen_weight_matrix))
+
+    # Once we have the set of local authorities that are not an island, we need to re-calculate the weights matrix:
+    queen_weight_matrix = Queen.from_dataframe(municipalities_polygons_with_data, idVariable='GM_CODE')
 
     # Then we transform our weights to be row-standardized.
     # Each weight is divided by its row sum (the sum of the weights of all neighboring features). 
     # Row standardized weighting is often used with fixed distance neighborhoods and almost always used for neighborhoods 
     # based on polygon contiguity.
     queen_weight_matrix.transform = 'r'
+
+    return queen_weight_matrix
+
+def calculateGlobalMoranI(municipalities_polygons_with_data, data_name, id_variable, output_folder, year):
+    queen_weight_matrix = calculateQueenWeightMatrix(municipalities_polygons_with_data, data_name, id_variable, output_folder, year)
 
     print(type(municipalities_polygons_with_data))
     print(type(municipalities_polygons_with_data['GM_NAAM'].values))
@@ -136,19 +166,19 @@ def exportFoliumLisaMap(municipalities_polygons_with_data, data_name, moran_loca
                  style_kwds = {"weight": 0.5}, 
                  legend_kwds = { "caption": "LISA quadrant"}, 
                  tooltip = False, 
-                 popup = True,
-                 popup_kwds = {
-                    "aliases": ["Municipality code", "Municipality", "Water", "Year", data_name, "LISA quadrant", "Pseudo p-value"]
-                 })
+                 popup = True#,
+                 #popup_kwds = {
+                 #   "aliases": ["Municipality code", "Municipality", "Water", "Year", data_name, "LISA quadrant", "Pseudo p-value"]
+                 #}
+                 )
     
     lisa_folium_map.save(output_folder_per_year + "/folium_lisa_map_" + str(year) + ".html")
 
 
-def calculateLocalMoranI(municipalities_polygons_with_data, data_name, output_folder, year):
-     # Calculate weight matrix from the GeoDataFrame using Queen approach
-    queen_weight_matrix = Queen.from_dataframe(municipalities_polygons_with_data)
+def calculateLocalMoranI(municipalities_polygons_with_data, data_name, id_variable, output_folder, year):
+    queen_weight_matrix = calculateQueenWeightMatrix(municipalities_polygons_with_data, data_name, id_variable, output_folder, year)
 
-    print(type(municipalities_polygons_with_data))
+    print("municipalities_polygons_with_data is type {}".format(type(municipalities_polygons_with_data)))
     print(type(municipalities_polygons_with_data['GM_NAAM'].values))
     print("There is total {} municipalities".format(len(municipalities_polygons_with_data['GM_NAAM'].values)))
     print(municipalities_polygons_with_data['GM_NAAM'].values)
@@ -160,8 +190,8 @@ def calculateLocalMoranI(municipalities_polygons_with_data, data_name, output_fo
     print("There is total {} data".format(len(municipalities_polygons_with_data[data_name].values)))
     #print(cities_polygons_with_data[data_name].values)
 
-    num_permutations = 1
-    moran_loc = Moran_Local(municipalities_polygons_with_data[data_name].values, queen_weight_matrix, 'R', num_permutations)
+    #num_permutations = 1
+    moran_loc = Moran_Local(municipalities_polygons_with_data[data_name].values, queen_weight_matrix, 'R')
     print("Local Moran spatial autocorrelation for {} between municipalities".format(data_name))
     print(dir(moran_loc))
     #print(moran_loc)
@@ -189,7 +219,8 @@ def calculateLocalMoranI(municipalities_polygons_with_data, data_name, output_fo
     plt.savefig(output_folder_per_year + '/' + save_plot_file_name)
     #plt.show()
 
-    exportFoliumLisaMap(municipalities_polygons_with_data, data_name, moran_loc, output_folder_per_year, year)
+    #municipalities_polygons_with_data.reset_index(drop=True)
+    #exportFoliumLisaMap(municipalities_polygons_with_data, data_name, moran_loc, output_folder_per_year, year)
 
     # We can extract the LISA quadrant along with the p-value from the lisa object
     # Convert all non-significant quadrants to zero
@@ -211,3 +242,5 @@ def calculateLocalMoranI(municipalities_polygons_with_data, data_name, output_fo
     low_high_spots = {k: v for k, v in municipality_labeled_wtih_quadrants.items() if v == 4}
 
     exportDataToCSVFile(low_high_spots.items(), field_names, output_folder_per_year + "/" + data_name + "_" + str(year) + ".csv", 'w')
+
+    return moran_loc

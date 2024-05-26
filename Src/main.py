@@ -18,7 +18,7 @@ def main():
 
     # Processing immigration
     path_to_immigration_csv_file = args[5]
-    processImmigration(path_to_immigration_csv_file, path_to_shape_file)
+    #processImmigration(path_to_immigration_csv_file, path_to_shape_file)
      
 if __name__ == "__main__":
     main()    
