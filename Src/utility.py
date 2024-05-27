@@ -123,7 +123,7 @@ def substituteMissingDataWithGuessedOne(data_all_years, data_name, output_folder
         # This municipality does not have complete housing prices. So can use regression models to replace missing house prices with
         # reasonable guesses
         num_data_in_this_municipality = len(data_municipalities[municipality])
-        if num_data_in_this_municipality < 11 and num_data_in_this_municipality > 3:
+        if num_data_in_this_municipality < year_period and num_data_in_this_municipality > 3:
             # print ("{} do not have complete housing prices. Running regression model to calculate guessed housing prices".format(municipality))
             house_prices = []
             years_with_missing_data = list(range(start_year, end_year + 1))
@@ -152,10 +152,10 @@ def substituteMissingDataWithGuessedOne(data_all_years, data_name, output_folder
                         "regression_model_" + municipality)
 
             fig, ax = plt.subplots()
-            ax.scatter(years_with_data, house_prices, c='blue', label='existing housing prices',
+            ax.scatter(years_with_data, house_prices, c='blue', label='existing ' + data_name,
                        alpha=0.7, edgecolors='none')
 
-            colors = np.full((11), ["blue"], dtype=str)
+            colors = np.full((year_period), ["blue"], dtype=str)
             guessed_house_prices = []
             for year_with_missing_data in years_with_missing_data:
                 # Substitude missing data with guessed one

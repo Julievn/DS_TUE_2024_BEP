@@ -64,6 +64,12 @@ def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
     print("Successfully loaded {} for {} years".format(
         path_to_immigration_csv_file, len(immigration_all_years)))
 
+    # Substitude missing data with guessed ones
+    end_year = 2022
+    data_name = "Immigration"
+    immigration_all_years = substituteMissingDataWithGuessedOne(
+        immigration_all_years, data_name, output_immigration_folder, start_year, end_year)
+
     for year_idx in range(1):
         immigration_per_year = immigration_all_years[year_idx]
         year = start_year + year_idx
@@ -75,7 +81,6 @@ def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
         CreateOutputFolderIfNeeded(output_immigration_folder_per_year)
 
         # Keep only municipalities with immigration data
-        data_name = "Immigration"
         municipalties_polygons_with_immigration = getMunicipalitiesPolygonsWithData(
             path_to_shape_file, year, immigration_per_year, data_name, output_immigration_folder_per_year, True)
         print("Successfully loaded {} with {} elements".format(
