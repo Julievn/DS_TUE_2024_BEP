@@ -26,8 +26,8 @@ def getIslandFromQueenWeightMatrix(municipalities_polygons_with_data, id_variabl
         print("Neighbors of GM0060 {} ".format(queen_weight_matrix['GM0060']))
     else:
         queen_weight_matrix = Queen.from_dataframe(municipalities_polygons_with_data)
-        print("Using default index, neighbors of GM0060 {} ".format(municipalities_polygons_with_data[6]))
-        print("Using default index, neighbors of GM0060 {} ".format(queen_weight_matrix[6]))
+        #print("Using default index, neighbors of GM0060 {} ".format(municipalities_polygons_with_data[6]))
+        #print("Using default index, neighbors of GM0060 {} ".format(queen_weight_matrix[6]))
     
     if output_folder != "":
         municipalities_polygons_with_data.loc[queen_weight_matrix.islands, :].plot(color='red')
@@ -102,19 +102,17 @@ def exportFoliumLisaMap(municipalities_polygons_with_data, data_name, moran_loca
     # As folium (i.e. leaflet.js) by default accepts values of latitude and longitude (angular units) as input, 
     # we need to project the geometry to a geographic coordinate system first.
     print ("showFoliumLisaMap municipalities_polygons_with_data with crs {}".format(municipalities_polygons_with_data.crs))
+
     municipalities_polygons_with_data = municipalities_polygons_with_data.copy()
     municipalities_polygons_with_geographic_coordianate = municipalities_polygons_with_data.to_crs(epsg=4326) # Use WGS 84 (epsg:4326) as the geographic coordinate system
     print(municipalities_polygons_with_geographic_coordianate.crs)
     print(municipalities_polygons_with_geographic_coordianate.head())
 
     municipalities_polygons_with_geographic_coordianate['quadrant'] = moran_local.q
-    print("output_folder_per_year is {}".format(output_folder_per_year))
-    print("There is total {} quadrants".format(len(municipalities_polygons_with_geographic_coordianate['quadrant'])))
-
     municipalities_polygons_with_geographic_coordianate['p_sim'] = moran_local.p_sim
 
     # Convert all non-significant quadrants to zero
-    municipalities_polygons_with_geographic_coordianate['quadrant'] = np.where(municipalities_polygons_with_geographic_coordianate['p_sim'] > 0.05, 0, municipalities_polygons_with_geographic_coordianate['quadrant'])
+    municipalities_polygons_with_geographic_coordianate['quadrant'] = np.where(municipalities_polygons_with_geographic_coordianate['p_sim'] >= 0.05, 0, municipalities_polygons_with_geographic_coordianate['quadrant'])
 
     # Get more informative descriptions
     # With: 1 HH, 2 LH, 3 LL, 4 HL
@@ -129,11 +127,7 @@ def exportFoliumLisaMap(municipalities_polygons_with_data, data_name, moran_loca
     )
 
     print(municipalities_polygons_with_geographic_coordianate.head())
-    print(type(municipalities_polygons_with_geographic_coordianate))
 
-    for pos, row in municipalities_polygons_with_geographic_coordianate.iterrows():
-        if row[2] == "Eindhoven":
-            print(row)
     def my_colormap(value):  # scalar value defined in 'column'
         if value == 0:
             return "lightgrey"
@@ -166,10 +160,10 @@ def exportFoliumLisaMap(municipalities_polygons_with_data, data_name, moran_loca
                  style_kwds = {"weight": 0.5}, 
                  legend_kwds = { "caption": "LISA quadrant"}, 
                  tooltip = False, 
-                 popup = True#,
-                 #popup_kwds = {
-                 #   "aliases": ["Municipality code", "Municipality", "Water", "Year", data_name, "LISA quadrant", "Pseudo p-value"]
-                 #}
+                 popup = True,
+                 popup_kwds = {
+                    "aliases": ["Municipality code", "Municipality", "Water", "Year", data_name, "LISA quadrant", "Pseudo p-value"]
+                 }
                  )
     
     lisa_folium_map.save(output_folder_per_year + "/folium_lisa_map_" + str(year) + ".html")
@@ -190,12 +184,15 @@ def calculateLocalMoranI(municipalities_polygons_with_data, data_name, id_variab
     print("There is total {} data".format(len(municipalities_polygons_with_data[data_name].values)))
     #print(cities_polygons_with_data[data_name].values)
 
-    #num_permutations = 1
-    moran_loc = Moran_Local(municipalities_polygons_with_data[data_name].values, queen_weight_matrix, 'R')
+    num_permutations = 99
+    moran_loc = Moran_Local(municipalities_polygons_with_data[data_name].values, queen_weight_matrix, 'R', num_permutations)
     print("Local Moran spatial autocorrelation for {} between municipalities".format(data_name))
     print(dir(moran_loc))
-    #print(moran_loc)
+    print(moran_loc)
     #print(moran_loc.__dict__)
+
+    for pos, row in municipalities_polygons_with_data.iterrows():
+        print("calculateLocalMoranI id = {} with code {} p_sim original {}; q quadrant original {}".format(pos, row[1], moran_loc.p_sim[pos], moran_loc.q[pos]))
 
     # for each municipality, there is a relating Local Moran’s I value, 
     # as well as its own variance, z value, expected I, and variance of I
@@ -219,28 +216,50 @@ def calculateLocalMoranI(municipalities_polygons_with_data, data_name, id_variab
     plt.savefig(output_folder_per_year + '/' + save_plot_file_name)
     #plt.show()
 
-    #municipalities_polygons_with_data.reset_index(drop=True)
-    #exportFoliumLisaMap(municipalities_polygons_with_data, data_name, moran_loc, output_folder_per_year, year)
+    for pos, row in municipalities_polygons_with_data.iterrows():
+        if row[2] == "Eindhoven":
+            print(row)
+            print("index is {}".format(pos))
+            print("q (quadrant) value is {}".format(moran_loc.q[pos]))
+            print ("Eindhoven has p_sim {}".format(moran_loc.p_sim[pos]))
 
     # We can extract the LISA quadrant along with the p-value from the lisa object
-    # Convert all non-significant quadrants to zero
-    quadrants = np.where(moran_loc.p_sim > 0.05, 0, moran_loc.q)
+    # Convert all non-significant quadrants (p_sim >= 0.05) to zero
+    quadrants = np.where(moran_loc.p_sim >= 0.05, 0, moran_loc.q)
 
     municipality_labeled_wtih_quadrants = dict(zip(municipalities_polygons_with_data['GM_NAAM'].values, quadrants))
+    municipality_labeled_wtih_psim = dict(zip(municipalities_polygons_with_data['GM_NAAM'].values, moran_loc.p_sim))
+
+    # Export High High 
+    # With: 1 HH, 2 LH, 3 LL, 4 HL
+    data_name = "High_High"
+    field_names = ['Municipality', data_name]
+    high_high_spots = {k: v for k, v in municipality_labeled_wtih_quadrants.items() if v == 1}
+    exportDataToCSVFile(high_high_spots.items(), field_names, output_folder_per_year + "/" + data_name + "_" + str(year) + ".csv", 'w')
 
     # Export Low High 
     # With: 1 HH, 2 LH, 3 LL, 4 HL
     data_name = "Low_High"
-    field_names = ['Municipality', data_name]
+    field_names = ['Municipality', data_name, 'p_sim']
     low_high_spots = {k: v for k, v in municipality_labeled_wtih_quadrants.items() if v == 2}
-
-    exportDataToCSVFile(low_high_spots.items(), field_names, output_folder_per_year + "/" + data_name + "_" + str(year) + ".csv", 'w')
+    low_high_spots_with_p_sims = []
+    for low_high_spot in low_high_spots.items():
+        municipality_name = low_high_spot[0]
+        p_sim = municipality_labeled_wtih_psim[municipality_name]
+        low_high_spot_with_p_sim = [municipality_name, low_high_spot[1], p_sim]
+        low_high_spots_with_p_sims.append(low_high_spot_with_p_sim)
+    exportDataToCSVFile(low_high_spots_with_p_sims, field_names, output_folder_per_year + "/" + data_name + "_" + str(year) + ".csv", 'w')
 
     # Export High Low - 1 HH, 2 LH, 3 LL, 4 HL
     data_name = "High_Low"
-    field_names = ['Municipality', data_name]
-    low_high_spots = {k: v for k, v in municipality_labeled_wtih_quadrants.items() if v == 4}
-
-    exportDataToCSVFile(low_high_spots.items(), field_names, output_folder_per_year + "/" + data_name + "_" + str(year) + ".csv", 'w')
+    field_names = ['Municipality', data_name, 'p_sim']
+    high_low_spots = {k: v for k, v in municipality_labeled_wtih_quadrants.items() if v == 4}
+    high_low_spots_with_p_sims = []
+    for high_low_spot in high_low_spots.items():
+        municipality_name = high_low_spot[0]
+        p_sim = municipality_labeled_wtih_psim[municipality_name]
+        high_low_spot_with_p_sim = [municipality_name, high_low_spot[1], p_sim]
+        high_low_spots_with_p_sims.append(high_low_spot_with_p_sim)
+    exportDataToCSVFile(high_low_spots_with_p_sims, field_names, output_folder_per_year + "/" + data_name + "_" + str(year) + ".csv", 'w')
 
     return moran_loc
