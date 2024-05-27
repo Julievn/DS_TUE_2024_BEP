@@ -50,8 +50,8 @@ def calculateQueenWeightMatrix(municipalities_polygons_with_data, data_name, id_
 
 
 def calculateGlobalMoranI(municipalities_polygons_with_data, queen_spatial_weight_matrix, data_name, output_folder, year):
-    print(type(municipalities_polygons_with_data))
-    print(type(municipalities_polygons_with_data['GM_NAAM'].values))
+    print("Calculating Global Moran I with {} for the following municipalities".format(
+        type(municipalities_polygons_with_data)))
     print(municipalities_polygons_with_data['GM_NAAM'].values)
 
     # <class 'pandas.core.series.Series'> when used inside this function.
@@ -199,9 +199,9 @@ def calculateLocalMoranI(municipalities_polygons_with_data, queen_spatial_weight
     print(moran_loc)
     # print(moran_loc.__dict__)
 
-    for pos, row in municipalities_polygons_with_data.iterrows():
-        print("calculateLocalMoranI id = {} with code {} p_sim original {}; q quadrant original {}".format(
-            pos, row[1], moran_loc.p_sim[pos], moran_loc.q[pos]))
+    # for pos, row in municipalities_polygons_with_data.iterrows():
+    #    print("calculateLocalMoranI id = {} with code {} p_sim original {}; q quadrant original {}".format(
+    #        pos, row[1], moran_loc.p_sim[pos], moran_loc.q[pos]))
 
     # for each municipality, there is a relating Local Moran’s I value,
     # as well as its own variance, z value, expected I, and variance of I

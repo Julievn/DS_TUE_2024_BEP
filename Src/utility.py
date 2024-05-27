@@ -13,6 +13,12 @@ import numpy as np
 # field_names are the column names
 
 
+def readDictionaryFromCSVFile(path_to_code_name_mapping_file):
+    with open(path_to_code_name_mapping_file, mode='r') as csvfile:
+        reader = csv.reader(csvfile)
+        return {rows[0]: rows[1] for rows in reader}
+
+
 def exportDataToCSVFile(data, field_names, file_path, mode):
     # Opening the file with newline='' on all platforms to disable universal newlines translation
     with open(file_path, mode, newline='', encoding='utf-8') as csvfile:
@@ -42,12 +48,15 @@ def getMunicipalitiesPolygonsWithData(path_to_shape_file, year, data_per_year, d
         municipalities_with_polygons_and_not_data_file_name_path = output_folder + \
             "/municipalties_with_polygons_and_not_" + \
             data_name + "_" + str(year) + ".txt"
+        municipality_code_name_mapping = {}
         with fiona.open(filename, **kwargs) as source:
             for feature in source:
                 f = {k: feature[k] for k in ['id', 'geometry']}
                 f['properties'] = {k: feature['properties'][k]
                                    for k in usecols}
                 municipality_name = f['properties']['GM_NAAM']
+                municipality_code = f['properties']['GM_CODE']
+                municipality_code_name_mapping[municipality_name] = municipality_code
 
                 # dictionary with key, value pair. For example, Aa en Hunze -> 213176
                 # only display cities with housing prices and not water boundaries
@@ -70,6 +79,14 @@ def getMunicipalitiesPolygonsWithData(path_to_shape_file, year, data_per_year, d
                     open_file.write("\n")
                     open_file.close()
 
+        export_municipality_code_name_csv_path = output_folder + \
+            "/" + "municipality_name_code" + "_" + str(year) + ".csv"
+        print("Exporting municipality code name mapping to csv {} with {} rows".format(
+            export_municipality_code_name_csv_path, len(municipality_code_name_mapping) + 1))
+        field_names = ['Municipality name', 'Municipality code']
+        exportDataToCSVFile(municipality_code_name_mapping.items(
+        ), field_names, export_municipality_code_name_csv_path, 'w')
+
     # https://epsg.io/28992
     # Use GM code as the index so that spatial weight matrix can conviniently use GM code to query neighbor. Otherwise, it's still ok but id 0, 1 is used.
     # drop=False will make exporting to Folium map fail.
@@ -90,8 +107,8 @@ def exitProgram():
 
 def getListOfArguments():
     args = sys.argv[1:]
-    if len(args) <= 0 or args[0] != '-house_price_csv' or args[2] != '-path_to_shape_file' or args[4] != '-immigration_csv':
-        print("Please use -house_price_csv and -path_to_shape_file as parameters.")
+    if len(args) <= 0 or args[0] != '-name_code_csv' or args[2] != '-house_price_csv' or args[4] != '-path_to_shape_file' or args[6] != '-immigration_csv':
+        print("Please use -name_code_csv, -house_price_csv, -path_to_shape_file, and -immigration_csv as parameters.")
         exitProgram()
 
     print("Running program {} with value {}; {} with value {} ".format(
@@ -99,7 +116,56 @@ def getListOfArguments():
     return args
 
 
-def substituteMissingDataWithGuessedOne(data_all_years, data_name, output_folder, start_year, end_year):
+def handleOldMunicipalities(data_all_years, data_name, old_municipalities_lists, new_municipality_list, merged_year_list, merge_mode, start_year, end_year):
+    idx = 0
+    for new_municipality in new_municipality_list:
+        merged_year = merged_year_list[idx]
+        old_municipalities_list = old_municipalities_lists[idx]
+        current_year = start_year
+
+        # Fill in missing data for new municipality
+        while current_year < merged_year:
+            data_per_year = data_all_years[current_year - start_year]
+            merged_data = 0
+            count = 0
+            for old_municipality in old_municipalities_list:
+                print("Old municipality {} for year {}".format(
+                    old_municipality, current_year))
+                if old_municipality in data_per_year:
+                    print("Old municipality {} for year {}".format(
+                        old_municipality, current_year))
+                else:
+                    print("No data for Old municipality {} for year {}".format(
+                        old_municipality, current_year))
+
+                print('Old municipality {} with {} value {}'.format(
+                    old_municipality, data_name, data_per_year[old_municipality]))
+                merged_data += data_per_year[old_municipality]
+                count += 1
+
+            if merge_mode != 's':  # average for housing prices and incomes
+                merged_data = merged_data / count
+
+            if new_municipality in data_per_year:
+                print("New municipality {} already has the value {}. Do nothing".format(
+                    new_municipality, data_per_year[new_municipality]))
+            else:
+                print('Fill in missing data for new municipality {} in year {} with value {}'.format(
+                    new_municipality, current_year, merged_data))
+                data_per_year[new_municipality] = merged_data
+
+            for old_municipality in old_municipalities_list:
+                print('Removing old municipality {}'.format(old_municipality))
+                removed_municipality = data_per_year.pop(
+                    old_municipality, None)
+
+            current_year += 1
+        idx += 1
+
+    return data_all_years
+
+
+def substituteMissingDataWithGuessedOne(data_all_years, data_name, municipality_name_code_mapping, output_folder, start_year, end_year):
     print("data_all_years has {} years".format(len(data_all_years)))
     # Creating an empty dictionary wich each element is a list of housing prices of a municipality for all years.
     data_municipalities = {}
@@ -119,12 +185,14 @@ def substituteMissingDataWithGuessedOne(data_all_years, data_name, output_folder
     output_data_regression_model_folder = output_folder + 'RegressionModel/'
     CreateOutputFolderIfNeeded(output_data_regression_model_folder)
     year_period = (end_year - start_year + 1)
+    municipalitiies_with_missing_datas = []
     for municipality in data_municipalities:
-        # This municipality does not have complete housing prices. So can use regression models to replace missing house prices with
+        # This municipality does not have complete data. So can use regression models to replace missing data with
         # reasonable guesses
         num_data_in_this_municipality = len(data_municipalities[municipality])
         if num_data_in_this_municipality < year_period and num_data_in_this_municipality > 3:
-            # print ("{} do not have complete housing prices. Running regression model to calculate guessed housing prices".format(municipality))
+            print("{} do not have complete {}. Running regression model to calculate guessed housing prices".format(
+                municipality, data_name))
             house_prices = []
             years_with_missing_data = list(range(start_year, end_year + 1))
             years_with_data = []
@@ -156,20 +224,26 @@ def substituteMissingDataWithGuessedOne(data_all_years, data_name, output_folder
                        alpha=0.7, edgecolors='none')
 
             colors = np.full((year_period), ["blue"], dtype=str)
-            guessed_house_prices = []
+            guessed_data_list = []
             for year_with_missing_data in years_with_missing_data:
                 # Substitude missing data with guessed one
-                # print ("calculate " + data_name + " for year {}".format(year_with_missing_data))
-                guessed_house_price = calculateDataForYear(
+                guessed_data = calculateDataForYear(
                     year_with_missing_data)
+                print("calculate missing " + data_name +
+                      " for municipality {} in year {} with value {} and start year = {}".format(municipality, year_with_missing_data, guessed_data, start_year))
                 data_per_year = data_all_years[year_with_missing_data - start_year]
-                data_per_year[municipality] = guessed_house_price
+                data_per_year[municipality] = guessed_data
 
                 years_with_data.append(year_with_missing_data)
-                house_prices.append(guessed_house_price)
-                guessed_house_prices.append(guessed_house_price)
-                colors[year_with_missing_data - start_year] = 'red'
+                house_prices.append(guessed_data)
+                guessed_data_list.append(guessed_data)
+                print(
+                    "year_with_missing_data - start_year = {} - len colors is {}".format(
+                        (year_with_missing_data - start_year), len(colors)))
+                colors[len(years_with_data) - 1] = 'red'
 
+            print("years_with_data  length = {}".format(len(years_with_data)))
+            print("guessed_data_list  length = {}".format(len(guessed_data_list)))
             ax.scatter(years_with_data, house_prices, c='red', label='guessed ' + data_name,
                        alpha=0.7, edgecolors='none')
 
@@ -183,6 +257,22 @@ def substituteMissingDataWithGuessedOne(data_all_years, data_name, output_folder
             ax.plot(years_with_data, mymodel)
             plt.savefig(output_data_regression_model_folder + '/' +
                         "data_substitution_use_regression_model_" + municipality)
+
+            years_with_missing_data_string = ' '.join(
+                map(str, years_with_missing_data))
+            municipality_code = municipality_name_code_mapping[municipality]
+            municipalitiy_with_missing_data = [
+                municipality, municipality_code, years_with_missing_data_string]
+            municipalitiies_with_missing_datas.append(
+                municipalitiy_with_missing_data)
+
+    # Export municipalitiy with missing data
+    field_names = ['Municipality name', 'Municipality code', 'Missing Years']
+    print("Regression model run for {}".format(
+        municipalitiies_with_missing_datas))
+    exportDataToCSVFile(municipalitiies_with_missing_datas, field_names,
+                        output_folder + "/missing_" + data_name + ".csv", 'w')
+
     return data_all_years
 
 # Read a csv file containing data for all municipalities in the Netherlands.
@@ -190,8 +280,10 @@ def substituteMissingDataWithGuessedOne(data_all_years, data_name, output_folder
 # Return a list of dictionaries. Each element is a dictionary. Each dictionary is a list of cities with house prices.
 
 
-def readCsvFile(path_to_csv_file, start_year, output_folder):
+def readCsvFile(path_to_csv_file, start_year, output_folder, ignored_municipalities):
     # create a list of dictionaries. Each element is a dictionary which is a list of cities with house prices for a particular year.
+    print("Loading csv file with ignored municipality {}".format(
+        ignored_municipalities))
     data_years = []
     special_municipality_mapping = {"'s-Gravenhage (municipality)": "'s-Gravenhage",
                                     "Groningen (municipality)": "Groningen",
@@ -206,21 +298,27 @@ def readCsvFile(path_to_csv_file, start_year, output_folder):
         csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
         next(csv_reader, None)  # skip the headers
         for row in csv_reader:
-            print(row)
             if ((len(row) == 3) and (row[2].isdigit())):
                 current_year = int(row[0].replace('"', ''))
                 current_municipality = row[1].replace('"', '')
-                current_price = int(row[2])
 
-                # Some names in the geographical file and the housing price file are not the same. So we need to do this mapping.
-                if current_municipality in special_municipality_mapping:
-                    current_municipality = special_municipality_mapping[current_municipality]
+                if (current_municipality == "Giessenlanden"):
+                    print("Giessenlanden has data for year {}".format(current_year))
 
-                year_idx = current_year - start_year
-                if (len(data_years) == year_idx):
-                    data_per_year = {current_municipality: current_price}
-                    data_years.append(data_per_year)
+                if current_municipality in ignored_municipalities:
+                    print("Ignoring {}".format(current_municipality))
                 else:
-                    data_per_year = data_years[current_year - start_year]
-                    data_per_year[current_municipality] = current_price
+                    current_price = int(row[2])
+
+                    # Some names in the geographical file and the housing price file are not the same. So we need to do this mapping.
+                    if current_municipality in special_municipality_mapping:
+                        current_municipality = special_municipality_mapping[current_municipality]
+
+                    year_idx = current_year - start_year
+                    if (len(data_years) == year_idx):
+                        data_per_year = {current_municipality: current_price}
+                        data_years.append(data_per_year)
+                    else:
+                        data_per_year = data_years[current_year - start_year]
+                        data_per_year[current_municipality] = current_price
     return data_years

@@ -6,7 +6,7 @@ from moran_calculation import *
 from utility import *
 
 
-def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
+def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_mapping, path_to_shape_file):
     # Load house prices from csv file
     print("Loading ", path_to_house_prices_csv_file)
 
@@ -23,7 +23,7 @@ def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
     end_year = 2023
     data_name = "House Price (in euros)"
     house_prices_years = substituteMissingDataWithGuessedOne(
-        house_prices_years, data_name, output_housing_price_folder, start_year, end_year)
+        house_prices_years, data_name, municipality_code_name_mapping, output_housing_price_folder, start_year, end_year)
 
     for year_idx in range(1):
         house_prices_per_year = house_prices_years[year_idx]

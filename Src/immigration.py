@@ -47,12 +47,9 @@ def readCsvImmigration(path_to_immigration_file):
     return immigration_all_years
 
 
-def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
+def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapping, path_to_shape_file, ignored_municipalities):
     # Load immigration from csv file
     print("Loading ", path_to_immigration_csv_file)
-    # immigration_all_years = readCsvImmigration(path_to_immigration_csv_file)
-    # print("Successfully loaded {} for {} years".format(
-    #    path_to_immigration_csv_file, len(immigration_all_years)))
 
     output_immigration_folder = "Output/Immigration/"
     CreateOutputFolderIfNeeded(output_immigration_folder)
@@ -60,15 +57,44 @@ def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
     # Can contain missing data
     start_year = 2013
     immigration_all_years = readCsvFile(
-        path_to_immigration_csv_file, start_year, output_immigration_folder)
+        path_to_immigration_csv_file, start_year, output_immigration_folder, ignored_municipalities)
     print("Successfully loaded {} for {} years".format(
         path_to_immigration_csv_file, len(immigration_all_years)))
 
-    # Substitude missing data with guessed ones
-    end_year = 2022
+    # Handle old municipalities which are merged into new ones.
+    # Can be more than one old municipality merged into one new
     data_name = "Immigration"
+    old_municipalities_lists = [
+        ["Aalburg", "Werkendam", "Woudrichem"], [
+            "Bedum", "De Marne", "Eemsmond", "Winsum"], ["Beemster"],
+        ["Bellingwedde", "Vlagtwedde"], ["het Bildt", "Franekeradeel",
+                                         "Menameradiel"], ["Binnenmaas", "Cromstrijen", "Korendijk", "Oud-Beijerland", "Strijen"], ["Ten Boer"],
+        ["Boxmeer", "Cuijk", "Sint Anthonis", "Mill en Sint Hubert", "Grave"],
+        ["Dongeradeel", "Ferwerderadiel", "Kollumerland en Nieuwkruisland"],
+        ["Geldermalsen", "Neerijnen", "Lingewaal"],
+        ["Grootegast", "Marum", "Leek", "Zuidhorn"],
+        ["Heerhugowaard", "Langedijk"],
+        ["Hoogezand-Sappemeer", "Slochteren", "Menterwolde"],
+        ["Landerd", "Uden"],
+        ["Leerdam", "Vianen", "Zederik"],
+        ["Appingedam", "Delfzijl", "Loppersum"],
+        ["Giessenlanden", "Molenwaard"],
+        ["Nuth", "Onderbanken", "Schinnen"],
+        ["Schijndel", "Veghel", "Sint-Oedenrode"],
+        ["Groesbeek"]]
+    new_municipality_list = ["Altena", "Het Hogeland", "Purmerend", "Westerwolde", "Waadhoeke", "Hoeksche Waard", "Groningen", "Land van Cuijk",
+                             "Noardeast-Fryslân", "West Betuwe", "Westerkwartier", "Dijk en Waard", "Midden-Groningen", "Maashorst", "Vijfheerenlanden", "Eemsdelta", "Molenlanden", "Beekdaelen", "Meierijstad", "Berg en Dal"]
+    merged_year_list = [2019, 2019, 2022, 2018, 2018, 2019, 2019, 2022,
+                        2019, 2019, 2019, 2022, 2018, 2022, 2019, 2021, 2019, 2019, 2017, 2016]
+
+    merge_mode = 's'
+    end_year = 2022
+    immigration_all_years = handleOldMunicipalities(
+        immigration_all_years, data_name, old_municipalities_lists, new_municipality_list, merged_year_list, merge_mode, start_year, end_year)
+
+    # Substitude missing data with guessed ones not because of merging old municipalities
     immigration_all_years = substituteMissingDataWithGuessedOne(
-        immigration_all_years, data_name, output_immigration_folder, start_year, end_year)
+        immigration_all_years, data_name, municipality_name_code_mapping, output_immigration_folder, start_year, end_year)
 
     for year_idx in range(1):
         immigration_per_year = immigration_all_years[year_idx]
