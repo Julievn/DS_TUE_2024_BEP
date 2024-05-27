@@ -18,23 +18,11 @@ from matplotlib import colors
 import matplotlib.pyplot as plt
 
 
-def getIslandFromQueenWeightMatrix(municipalities_polygons_with_data, id_variable, output_folder, year):
-    print("Top items in municipalities_polygons_with_data {}".format(municipalities_polygons_with_data.head(7)))
+def getIslandFromQueenWeightMatrix(municipalities_polygons_with_data, id_variable):
     if id_variable != "":
         queen_weight_matrix = Queen.from_dataframe(municipalities_polygons_with_data, idVariable=id_variable)
-        # GM0060 is the island. Its id is 6.
-        print("Neighbors of GM0060 {} ".format(queen_weight_matrix['GM0060']))
     else:
         queen_weight_matrix = Queen.from_dataframe(municipalities_polygons_with_data)
-        #print("Using default index, neighbors of GM0060 {} ".format(municipalities_polygons_with_data[6]))
-        #print("Using default index, neighbors of GM0060 {} ".format(queen_weight_matrix[6]))
-    
-    if output_folder != "":
-        municipalities_polygons_with_data.loc[queen_weight_matrix.islands, :].plot(color='red')
-        save_plot_file_name = "island_global_moran_weight_matrix_" + str(year)
-        output_folder_per_year = output_folder + '/' + str(year)
-        plt.savefig(output_folder_per_year + '/' + save_plot_file_name)
-
     return queen_weight_matrix.islands
 
 def calculateQueenWeightMatrix(municipalities_polygons_with_data, data_name, id_variable, output_folder, year):
