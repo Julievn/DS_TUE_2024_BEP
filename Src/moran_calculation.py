@@ -30,17 +30,17 @@ def getIslandFromQueenWeightMatrix(municipalities_polygons_with_data, id_variabl
 
 def calculateQueenWeightMatrix(municipalities_polygons_with_data, data_name, id_variable, output_folder, year):
     # Calculate weight matrix from the GeoDataFrame using Queen approach
-    queen_weight_matrix = Queen.from_dataframe(
-        municipalities_polygons_with_data, idVariable='GM_CODE')
+    if (id_variable != ""):
+        queen_weight_matrix = Queen.from_dataframe(
+            municipalities_polygons_with_data, idVariable=id_variable)
+    else:
+        queen_weight_matrix = Queen.from_dataframe(
+            municipalities_polygons_with_data)
 
     print("Calculate weight matrix for {} ".format(
         data_name, queen_weight_matrix))
 
-    # Once we have the set of local authorities that are not an island, we need to re-calculate the weights matrix:
-    queen_weight_matrix = Queen.from_dataframe(
-        municipalities_polygons_with_data, idVariable='GM_CODE')
-
-    # Then we transform our weights to be row-standardized.
+    # We transform our weights to be row-standardized.
     # Each weight is divided by its row sum (the sum of the weights of all neighboring features).
     # Row standardized weighting is often used with fixed distance neighborhoods and almost always used for neighborhoods
     # based on polygon contiguity.
@@ -49,7 +49,7 @@ def calculateQueenWeightMatrix(municipalities_polygons_with_data, data_name, id_
     return queen_weight_matrix
 
 
-def calculateGlobalMoranI(municipalities_polygons_with_data, queen_spatial_weight_matrix, data_name, id_variable, output_folder, year):
+def calculateGlobalMoranI(municipalities_polygons_with_data, queen_spatial_weight_matrix, data_name, output_folder, year):
     print(type(municipalities_polygons_with_data))
     print(type(municipalities_polygons_with_data['GM_NAAM'].values))
     print(municipalities_polygons_with_data['GM_NAAM'].values)
@@ -175,7 +175,7 @@ def exportFoliumLisaMap(municipalities_polygons_with_data, data_name, moran_loca
                          "/folium_lisa_map_" + str(year) + ".html")
 
 
-def calculateLocalMoranI(municipalities_polygons_with_data, queen_spatial_weight_matrix, data_name, id_variable, output_folder, year):
+def calculateLocalMoranI(municipalities_polygons_with_data, queen_spatial_weight_matrix, data_name, output_folder, year):
     print("municipalities_polygons_with_data is type {}".format(
         type(municipalities_polygons_with_data)))
     print(type(municipalities_polygons_with_data['GM_NAAM'].values))
@@ -209,8 +209,8 @@ def calculateLocalMoranI(municipalities_polygons_with_data, queen_spatial_weight
     # print("Local Moran EI value{}!".format(moran_loc.EI))
 
     fig, ax = moran_scatterplot(moran_loc, p=0.05)
-    ax.set_xlabel('Housing prices in ' + str(year))
-    ax.set_ylabel('Spatial Lag of Housing prices')
+    ax.set_xlabel(data_name + ' in ' + str(year))
+    ax.set_ylabel('Spatial Lag of ' + data_name)
     # plt.show()
 
     save_plot_file_name = "moran_scatterplot_" + str(year)

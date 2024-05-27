@@ -28,7 +28,6 @@ def readCsvImmigration(path_to_immigration_file):
         csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
         next(csv_reader, None)  # skip the headers
         for row in csv_reader:
-            print("Row {} with {} columns".format(row, len(row)))
             if ((len(row) == 3) and (row[2].isdigit())):
                 current_year = int(row[0].replace('"', ''))
                 current_city = row[1].replace('"', '')
@@ -59,7 +58,7 @@ def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
     CreateOutputFolderIfNeeded(output_immigration_folder)
 
     start_year = 2013
-    for year_idx in range(0):
+    for year_idx in range(1):
         immigration_per_year = immigration_all_years[year_idx]
         year = start_year + year_idx
         print("--------{}".format(year))
@@ -69,20 +68,34 @@ def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
             str(year)
         CreateOutputFolderIfNeeded(output_immigration_folder_per_year)
 
-        # Keep only cities with immigration data
+        # Keep only municipalities with immigration data
         data_name = "Immigration"
         municipalties_polygons_with_immigration = getMunicipalitiesPolygonsWithData(
-            path_to_shape_file, year, immigration_per_year, data_name, output_immigration_folder_per_year)
-        print("Successfully loaded ", path_to_shape_file)
+            path_to_shape_file, year, immigration_per_year, data_name, output_immigration_folder_per_year, True)
+        print("Successfully loaded {} with {} elements".format(
+            path_to_shape_file, len(municipalties_polygons_with_immigration)))
 
         # Show municipalties in map. Only municipalties with housing prices will be shown.
         showMunicipalitiesInMap(municipalties_polygons_with_immigration,
                                 data_name, output_immigration_folder_per_year, year)
 
+        id_variable = "GM_CODE"
+        islands = getIslandFromQueenWeightMatrix(
+            municipalties_polygons_with_immigration, id_variable)
+        print("Islands found in Queen spatial matrix {}. Removing islands from the geometry.".format(islands))
+        municipalties_polygons_with_immigration_without_islands = municipalties_polygons_with_immigration.drop(
+            islands).reset_index(drop=True)
+        print("After removing islands: {} elements".format(
+            len(municipalties_polygons_with_immigration_without_islands)))
+
         # Main part: calculate Global Moran I value
-        calculateGlobalMoranI(municipalties_polygons_with_immigration,
+        queen_spatial_weight_matrix = calculateQueenWeightMatrix(
+            municipalties_polygons_with_immigration_without_islands, data_name, id_variable, output_immigration_folder, year)
+        calculateGlobalMoranI(municipalties_polygons_with_immigration_without_islands, queen_spatial_weight_matrix,
                               data_name, output_immigration_folder, year)
 
         # Main part: calculate local Moran I value
-        calculateLocalMoranI(municipalties_polygons_with_immigration,
-                             data_name, output_immigration_folder, year)
+        local_moran_result = calculateLocalMoranI(municipalties_polygons_with_immigration_without_islands, queen_spatial_weight_matrix,
+                                                  data_name, output_immigration_folder, year)
+        exportFoliumLisaMap(municipalties_polygons_with_immigration_without_islands,
+                            data_name, local_moran_result, output_immigration_folder_per_year, year)

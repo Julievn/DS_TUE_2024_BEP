@@ -29,12 +29,12 @@ def showMunicipalitiesInMap(municipalities_polygons_with_data, data_name, output
     base = municipalities_polygons_with_data.plot()
     important_cities_gdf.plot(ax=base, color="red")
 
-    save_plot_file_name = "cities_polygon_" + str(year)
+    save_plot_file_name = "municipalities_polygon_" + str(year)
     plt.savefig(output_folder + '/' + save_plot_file_name)
 
     ax = municipalities_polygons_with_data.boundary.plot()
     ax.set_axis_off()
-    save_plot_file_name = "cities_polygon_boundaries_" + str(year)
+    save_plot_file_name = "municipalities_polygon_boundaries_" + str(year)
     # plt.show()
     plt.savefig(output_folder + '/' + save_plot_file_name)
 
@@ -47,7 +47,7 @@ def showMunicipalitiesInMap(municipalities_polygons_with_data, data_name, output
         ax=ax,
         legend=True,
         cax=cax,
-        legend_kwds={"label": "House prices in " +
+        legend_kwds={"label": data_name + " in " +
                      str(year), "orientation": "horizontal"}
     )
 
