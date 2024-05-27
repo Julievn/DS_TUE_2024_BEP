@@ -47,7 +47,7 @@ def readCsvImmigration(path_to_immigration_file):
     return immigration_all_years
 
 
-def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapping, path_to_shape_file, ignored_municipalities):
+def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapping, path_to_shape_file, ignored_municipalities, old_municipalities_lists, new_municipality_list, merged_year_list, merge_mode):
     # Load immigration from csv file
     print("Loading ", path_to_immigration_csv_file)
 
@@ -64,30 +64,6 @@ def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapp
     # Handle old municipalities which are merged into new ones.
     # Can be more than one old municipality merged into one new
     data_name = "Immigration"
-    old_municipalities_lists = [
-        ["Aalburg", "Werkendam", "Woudrichem"], [
-            "Bedum", "De Marne", "Eemsmond", "Winsum"], ["Beemster"],
-        ["Bellingwedde", "Vlagtwedde"], ["het Bildt", "Franekeradeel",
-                                         "Menameradiel"], ["Binnenmaas", "Cromstrijen", "Korendijk", "Oud-Beijerland", "Strijen"], ["Ten Boer"],
-        ["Boxmeer", "Cuijk", "Sint Anthonis", "Mill en Sint Hubert", "Grave"],
-        ["Dongeradeel", "Ferwerderadiel", "Kollumerland en Nieuwkruisland"],
-        ["Geldermalsen", "Neerijnen", "Lingewaal"],
-        ["Grootegast", "Marum", "Leek", "Zuidhorn"],
-        ["Heerhugowaard", "Langedijk"],
-        ["Hoogezand-Sappemeer", "Slochteren", "Menterwolde"],
-        ["Landerd", "Uden"],
-        ["Leerdam", "Vianen", "Zederik"],
-        ["Appingedam", "Delfzijl", "Loppersum"],
-        ["Giessenlanden", "Molenwaard"],
-        ["Nuth", "Onderbanken", "Schinnen"],
-        ["Schijndel", "Veghel", "Sint-Oedenrode"],
-        ["Groesbeek"]]
-    new_municipality_list = ["Altena", "Het Hogeland", "Purmerend", "Westerwolde", "Waadhoeke", "Hoeksche Waard", "Groningen", "Land van Cuijk",
-                             "Noardeast-Fryslân", "West Betuwe", "Westerkwartier", "Dijk en Waard", "Midden-Groningen", "Maashorst", "Vijfheerenlanden", "Eemsdelta", "Molenlanden", "Beekdaelen", "Meierijstad", "Berg en Dal"]
-    merged_year_list = [2019, 2019, 2022, 2018, 2018, 2019, 2019, 2022,
-                        2019, 2019, 2019, 2022, 2018, 2022, 2019, 2021, 2019, 2019, 2017, 2016]
-
-    merge_mode = 's'
     end_year = 2022
     immigration_all_years = handleOldMunicipalities(
         immigration_all_years, data_name, old_municipalities_lists, new_municipality_list, merged_year_list, merge_mode, start_year, end_year)
