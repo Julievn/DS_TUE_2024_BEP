@@ -42,9 +42,7 @@ def calculateQueenWeightMatrix(municipalities_polygons_with_data, data_name, id_
 
     return queen_weight_matrix
 
-def calculateGlobalMoranI(municipalities_polygons_with_data, data_name, id_variable, output_folder, year):
-    queen_weight_matrix = calculateQueenWeightMatrix(municipalities_polygons_with_data, data_name, id_variable, output_folder, year)
-
+def calculateGlobalMoranI(municipalities_polygons_with_data, queen_spatial_weight_matrix, data_name, id_variable, output_folder, year):
     print(type(municipalities_polygons_with_data))
     print(type(municipalities_polygons_with_data['GM_NAAM'].values))
     print(municipalities_polygons_with_data['GM_NAAM'].values)
@@ -58,7 +56,8 @@ def calculateGlobalMoranI(municipalities_polygons_with_data, data_name, id_varia
     # house_prices = cities_polygons_with_house_prices['Average_House_Price'].to_numpy()
     #print(type(house_prices))
 
-    moran_global = Moran(municipalities_polygons_with_data[data_name].values, queen_weight_matrix)
+    num_permutations = 99
+    moran_global = Moran(municipalities_polygons_with_data[data_name].values, queen_spatial_weight_matrix, 'R', num_permutations)
     print("Glocal Moran spatial autocorrelation for {} between municipalities".format(data_name))
     print(moran_global)
 
@@ -157,9 +156,7 @@ def exportFoliumLisaMap(municipalities_polygons_with_data, data_name, moran_loca
     lisa_folium_map.save(output_folder_per_year + "/folium_lisa_map_" + str(year) + ".html")
 
 
-def calculateLocalMoranI(municipalities_polygons_with_data, data_name, id_variable, output_folder, year):
-    queen_weight_matrix = calculateQueenWeightMatrix(municipalities_polygons_with_data, data_name, id_variable, output_folder, year)
-
+def calculateLocalMoranI(municipalities_polygons_with_data, queen_spatial_weight_matrix, data_name, id_variable, output_folder, year):
     print("municipalities_polygons_with_data is type {}".format(type(municipalities_polygons_with_data)))
     print(type(municipalities_polygons_with_data['GM_NAAM'].values))
     print("There is total {} municipalities".format(len(municipalities_polygons_with_data['GM_NAAM'].values)))
@@ -173,7 +170,7 @@ def calculateLocalMoranI(municipalities_polygons_with_data, data_name, id_variab
     #print(cities_polygons_with_data[data_name].values)
 
     num_permutations = 99
-    moran_loc = Moran_Local(municipalities_polygons_with_data[data_name].values, queen_weight_matrix, 'R', num_permutations)
+    moran_loc = Moran_Local(municipalities_polygons_with_data[data_name].values, queen_spatial_weight_matrix, 'R', num_permutations)
     print("Local Moran spatial autocorrelation for {} between municipalities".format(data_name))
     print(dir(moran_loc))
     print(moran_loc)

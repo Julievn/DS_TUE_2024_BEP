@@ -59,10 +59,11 @@ def processHousePrices(path_to_house_prices_csv_file, path_to_shape_file):
         municipalities_polygons_with_house_prices_without_islands = municipalities_polygons_with_house_prices.drop(islands).reset_index(drop=True)
 
         # Main part: calculate Global Moran I value
-        calculateGlobalMoranI(municipalities_polygons_with_house_prices_without_islands, data_name, id_variable, output_housing_price_folder, year)
+        queen_spatial_weight_matrix = calculateQueenWeightMatrix(municipalities_polygons_with_house_prices_without_islands, data_name, id_variable, output_housing_price_folder, year)
+        calculateGlobalMoranI(municipalities_polygons_with_house_prices_without_islands, queen_spatial_weight_matrix, data_name, id_variable, output_housing_price_folder, year)
 
         # Main part: calculate local Moran I value
-        local_moran_result = calculateLocalMoranI(municipalities_polygons_with_house_prices_without_islands, data_name, id_variable, output_housing_price_folder, year)
+        local_moran_result = calculateLocalMoranI(municipalities_polygons_with_house_prices_without_islands, queen_spatial_weight_matrix, data_name, id_variable, output_housing_price_folder, year)
 
         #municipalities_polygons_with_house_prices_for_folium_map = getMunicipalitiesPolygonsWithData(path_to_shape_file, year, house_prices_per_year, data_name, output_housing_price_folder, False)
         #islands_using_default_index = getIslandFromQueenWeightMatrix(municipalities_polygons_with_house_prices_without_islands, "", "", year)
