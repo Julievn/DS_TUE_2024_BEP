@@ -203,9 +203,10 @@ def readCsvFile(path_to_csv_file, start_year, output_folder):
                                     "Hengelo (O.)": "Hengelo"}
 
     with open(path_to_csv_file, newline='', encoding='utf-8') as csvfile:
-        csv_reader = csv.reader(csvfile, delimiter=';', quotechar='|')
+        csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
         next(csv_reader, None)  # skip the headers
         for row in csv_reader:
+            print(row)
             if ((len(row) == 3) and (row[2].isdigit())):
                 current_year = int(row[0].replace('"', ''))
                 current_municipality = row[1].replace('"', '')

@@ -208,7 +208,7 @@ def calculateLocalMoranI(municipalities_polygons_with_data, queen_spatial_weight
     print("There is total {} Local Moran EI value".format(len(moran_loc.EI)))
     # print("Local Moran EI value{}!".format(moran_loc.EI))
 
-    fig, ax = moran_scatterplot(moran_loc, p=0.05)
+    fig, ax = moran_scatterplot(moran_loc, True)
     ax.set_xlabel(data_name + ' in ' + str(year))
     ax.set_ylabel('Spatial Lag of ' + data_name)
     # plt.show()

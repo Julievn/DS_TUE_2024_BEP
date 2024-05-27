@@ -50,14 +50,20 @@ def readCsvImmigration(path_to_immigration_file):
 def processImmigration(path_to_immigration_csv_file, path_to_shape_file):
     # Load immigration from csv file
     print("Loading ", path_to_immigration_csv_file)
-    immigration_all_years = readCsvImmigration(path_to_immigration_csv_file)
-    print("Successfully loaded {} for {} year".format(
-        path_to_immigration_csv_file, len(immigration_all_years)))
+    # immigration_all_years = readCsvImmigration(path_to_immigration_csv_file)
+    # print("Successfully loaded {} for {} years".format(
+    #    path_to_immigration_csv_file, len(immigration_all_years)))
 
     output_immigration_folder = "Output/Immigration/"
     CreateOutputFolderIfNeeded(output_immigration_folder)
 
+    # Can contain missing data
     start_year = 2013
+    immigration_all_years = readCsvFile(
+        path_to_immigration_csv_file, start_year, output_immigration_folder)
+    print("Successfully loaded {} for {} years".format(
+        path_to_immigration_csv_file, len(immigration_all_years)))
+
     for year_idx in range(1):
         immigration_per_year = immigration_all_years[year_idx]
         year = start_year + year_idx
