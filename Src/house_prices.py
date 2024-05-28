@@ -6,7 +6,7 @@ from moran_calculation import *
 from utility import *
 
 
-def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_mapping, path_to_shape_file):
+def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_mapping, path_to_shape_file, ignored_municipalities, old_municipalities_lists, merged_municipality_list, merged_year_list, merge_mode):
     # Load house prices from csv file
     print("Loading ", path_to_house_prices_csv_file)
 
@@ -14,18 +14,24 @@ def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_map
     CreateOutputFolderIfNeeded(output_housing_price_folder)
 
     # Can contain missing data
+    csv_delimeter = ','
     start_year = 2013
     house_prices_years = readCsvFile(
-        path_to_house_prices_csv_file, start_year, output_housing_price_folder)
+        path_to_house_prices_csv_file, start_year, output_housing_price_folder, ignored_municipalities, csv_delimeter)
     print("Successfully loaded ", path_to_house_prices_csv_file)
 
-    # Substitude missing data with guessed ones
-    end_year = 2023
+    # Handle old municipalities which are merged into new or existing ones.
+    # Can be more than one old municipality merged into one new or existing ones
     data_name = "House Price (in euros)"
-    house_prices_years = substituteMissingDataWithGuessedOne(
-        house_prices_years, data_name, municipality_code_name_mapping, output_housing_price_folder, start_year, end_year)
+    end_year = 2023
+    house_prices_years = handleOldMunicipalities(
+        house_prices_years, data_name, old_municipalities_lists, merged_municipality_list, merged_year_list, merge_mode, start_year, end_year)
 
-    for year_idx in range(1):
+    # Substitude missing data with guessed ones
+    house_prices_years = substituteMissingDataWithGuessedOne(
+        house_prices_years, data_name, municipality_name_code_mapping, output_housing_price_folder, start_year, end_year)
+
+    for year_idx in range(end_year - start_year):
         house_prices_per_year = house_prices_years[year_idx]
         year = start_year + year_idx
         print("--------{}".format(year))
