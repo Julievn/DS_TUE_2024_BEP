@@ -65,6 +65,12 @@ def main():
     processImmigration(path_to_immigration_csv_file,
                        municipality_name_code_mapping, path_to_shape_file, ignored_municipalities, old_municipalities_lists, merged_municipality_list, merged_year_list, merge_mode)
 
+    # Processing household income
+    merge_mode = 'a'
+    path_to_household_income_csv_file = args[9]
+    processHouseholdIncome(path_to_household_income_csv_file,
+                           municipality_name_code_mapping, path_to_shape_file, ignored_municipalities, old_municipalities_lists, merged_municipality_list, merged_year_list, merge_mode)
+
 
 if __name__ == "__main__":
     main()
