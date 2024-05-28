@@ -47,7 +47,7 @@ def readCsvImmigration(path_to_immigration_file):
     return immigration_all_years
 
 
-def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapping, path_to_shape_file, ignored_municipalities, old_municipalities_lists, new_municipality_list, merged_year_list, merge_mode):
+def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapping, path_to_shape_file, ignored_municipalities, old_municipalities_lists, merged_municipality_list, merged_year_list, merge_mode):
     # Load immigration from csv file
     print("Loading ", path_to_immigration_csv_file)
 
@@ -55,9 +55,10 @@ def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapp
     CreateOutputFolderIfNeeded(output_immigration_folder)
 
     # Can contain missing data
+    csv_delimeter = ','
     start_year = 2013
     immigration_all_years = readCsvFile(
-        path_to_immigration_csv_file, start_year, output_immigration_folder, ignored_municipalities)
+        path_to_immigration_csv_file, start_year, output_immigration_folder, ignored_municipalities, csv_delimeter)
     print("Successfully loaded {} for {} years".format(
         path_to_immigration_csv_file, len(immigration_all_years)))
 
@@ -66,13 +67,13 @@ def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapp
     data_name = "Immigration"
     end_year = 2022
     immigration_all_years = handleOldMunicipalities(
-        immigration_all_years, data_name, old_municipalities_lists, new_municipality_list, merged_year_list, merge_mode, start_year, end_year)
+        immigration_all_years, data_name, old_municipalities_lists, merged_municipality_list, merged_year_list, merge_mode, start_year, end_year)
 
     # Substitude missing data with guessed ones not because of merging old municipalities
     immigration_all_years = substituteMissingDataWithGuessedOne(
         immigration_all_years, data_name, municipality_name_code_mapping, output_immigration_folder, start_year, end_year)
 
-    for year_idx in range(1):
+    for year_idx in range(end_year - start_year + 1):
         immigration_per_year = immigration_all_years[year_idx]
         year = start_year + year_idx
         print("--------{}".format(year))

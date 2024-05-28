@@ -54,7 +54,7 @@ def getMunicipalitiesPolygonsWithData(path_to_shape_file, year, data_per_year, d
                 f = {k: feature[k] for k in ['id', 'geometry']}
                 f['properties'] = {k: feature['properties'][k]
                                    for k in usecols}
-                municipality_name = f['properties']['GM_NAAM']
+                municipality_name = f['properties']['GM_NAAM'].replace('"', '')
                 municipality_code = f['properties']['GM_CODE']
                 municipality_code_name_mapping[municipality_name] = municipality_code
 
@@ -107,8 +107,17 @@ def exitProgram():
 
 def getListOfArguments():
     args = sys.argv[1:]
-    if len(args) <= 0 or args[0] != '-name_code_csv' or args[2] != '-house_price_csv' or args[4] != '-path_to_shape_file' or args[6] != '-immigration_csv':
-        print("Please use -name_code_csv, -house_price_csv, -path_to_shape_file, and -immigration_csv as parameters.")
+    if len(args) <= 0:
+        if args[0] != '-name_code_csv':
+            print("Please use -name_code_csv as the first parameter.")
+        elif args[2] != '-house_price_csv':
+            print("Please use -house_price_csv as the second parameter.")
+        elif args[4] != '-path_to_shape_file':
+            print("Please use -path_to_shape_file as the third paramter.")
+        elif args[6] != '-immigration_csv':
+            print("Please use -immigration_csv as the fourth parameter.")
+        elif args[8] != '-household_income_csv':
+            print("Please use -household_income_csv as the fifth parameter.")
         exitProgram()
 
     print("Running program {} with value {}; {} with value {} ".format(
@@ -129,17 +138,7 @@ def handleOldMunicipalities(data_all_years, data_name, old_municipalities_lists,
             merged_data = 0
             count = 0
             for old_municipality in old_municipalities_list:
-                print("Old municipality {} for year {}".format(
-                    old_municipality, current_year))
-                if old_municipality in data_per_year:
-                    print("Old municipality {} for year {}".format(
-                        old_municipality, current_year))
-                else:
-                    print("No data for Old municipality {} for year {}".format(
-                        old_municipality, current_year))
 
-                print('Old municipality {} with {} value {}'.format(
-                    old_municipality, data_name, data_per_year[old_municipality]))
                 merged_data += data_per_year[old_municipality]
                 count += 1
 
@@ -150,12 +149,11 @@ def handleOldMunicipalities(data_all_years, data_name, old_municipalities_lists,
                 print("New municipality {} already has the value {}. Do nothing".format(
                     new_municipality, data_per_year[new_municipality]))
             else:
-                print('Fill in missing data for new municipality {} in year {} with value {}'.format(
-                    new_municipality, current_year, merged_data))
+                print('Fill in missing data for new municipality {} in year {} with value {}. Removing old municipalities {}'.format(
+                    new_municipality, current_year, merged_data, old_municipalities_list))
                 data_per_year[new_municipality] = merged_data
 
             for old_municipality in old_municipalities_list:
-                print('Removing old municipality {}'.format(old_municipality))
                 removed_municipality = data_per_year.pop(
                     old_municipality, None)
 
@@ -194,8 +192,8 @@ def substituteMissingDataWithGuessedOne(data_all_years, data_name, municipality_
             print("{} do not have complete {}. Running regression model to calculate guessed housing prices".format(
                 municipality, data_name))
             house_prices = []
-            years_with_missing_data = list(range(start_year, end_year + 1))
             years_with_data = []
+            years_with_missing_data = list(range(start_year, end_year + 1))
             for year_with_data in data_municipalities[municipality]:
                 year = list(year_with_data.keys())[0]
                 # print("year {}".format(year))
@@ -266,6 +264,9 @@ def substituteMissingDataWithGuessedOne(data_all_years, data_name, municipality_
             municipalitiies_with_missing_datas.append(
                 municipalitiy_with_missing_data)
 
+        if num_data_in_this_municipality < year_period and num_data_in_this_municipality <= 3:
+            print("Cannot run regression model for municipality {}".format(municipality))
+
     # Export municipalitiy with missing data
     field_names = ['Municipality name', 'Municipality code', 'Missing Years']
     print("Regression model run for {}".format(
@@ -280,35 +281,37 @@ def substituteMissingDataWithGuessedOne(data_all_years, data_name, municipality_
 # Return a list of dictionaries. Each element is a dictionary. Each dictionary is a list of cities with house prices.
 
 
-def readCsvFile(path_to_csv_file, start_year, output_folder, ignored_municipalities):
+def readCsvFile(path_to_csv_file, start_year, output_folder, ignored_municipalities, csv_delimeter):
     # create a list of dictionaries. Each element is a dictionary which is a list of cities with house prices for a particular year.
     print("Loading csv file with ignored municipality {}".format(
         ignored_municipalities))
     data_years = []
     special_municipality_mapping = {"'s-Gravenhage (municipality)": "'s-Gravenhage",
+                                    "'s-Gravenhage (gemeente)": "'s-Gravenhage",
                                     "Groningen (municipality)": "Groningen",
+                                    "Groningen (gemeente)": "Groningen",
                                     "Utrecht (municipality)": "Utrecht",
+                                    "Utrecht (gemeente)": "Utrecht",
                                     "Laren (NH.)": "Laren",
                                     "Rijswijk (ZH.)": "Rijswijk",
                                     "Beek (L.)": "Beek",
                                     "Stein (L.)": "Stein",
-                                    "Hengelo (O.)": "Hengelo"}
+                                    "Hengelo (O.)": "Hengelo",
+                                    "Middelburg (Z.)": "Middelburg"}
 
     with open(path_to_csv_file, newline='', encoding='utf-8') as csvfile:
-        csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        # to handle "2013","Nuenen, Gerwen en Nederwetten",302982
+        csv_reader = csv.reader(
+            csvfile, delimiter=csv_delimeter, quotechar='"')
         next(csv_reader, None)  # skip the headers
         for row in csv_reader:
-            if ((len(row) == 3) and (row[2].isdigit())):
+            if ((len(row) == 3) and (row[2].replace('"', '').replace('.', '', 1).replace(',', '', 1).isdigit())):
                 current_year = int(row[0].replace('"', ''))
                 current_municipality = row[1].replace('"', '')
-
-                if (current_municipality == "Giessenlanden"):
-                    print("Giessenlanden has data for year {}".format(current_year))
-
                 if current_municipality in ignored_municipalities:
                     print("Ignoring {}".format(current_municipality))
                 else:
-                    current_price = int(row[2])
+                    current_price = float(row[2].replace(',', '.', 1))
 
                     # Some names in the geographical file and the housing price file are not the same. So we need to do this mapping.
                     if current_municipality in special_municipality_mapping:
