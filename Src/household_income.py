@@ -20,7 +20,7 @@ def processHouseholdIncome(path_to_household_incomes_csv_file, municipality_name
 
     # Can contain missing data
     csv_delimeter = ';'
-    start_year = 2013
+    start_year = getStartYear()
     household_incomes_years = readCsvFile(
         path_to_household_incomes_csv_file, start_year, output_household_incomes_folder, ignored_municipalities, csv_delimeter)
     print("Successfully loaded {} with {} years".format(

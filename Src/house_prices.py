@@ -15,7 +15,7 @@ def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_map
 
     # Can contain missing data
     csv_delimeter = ','
-    start_year = 2013
+    start_year = getStartYear()
     house_prices_years = readCsvFile(
         path_to_house_prices_csv_file, start_year, output_housing_price_folder, ignored_municipalities, csv_delimeter)
     print("Successfully loaded ", path_to_house_prices_csv_file)

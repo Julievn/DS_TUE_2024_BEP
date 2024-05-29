@@ -12,8 +12,6 @@ from utility import *
 def readCsvImmigration(path_to_immigration_file):
     # create a list of dictionaries. Each element is a dictionar which  is a list of cities with data for that year.
     immigration_all_years = []
-    start_year = 2013
-
     special_municipality_mapping = {"'s-Gravenhage (municipality)": "'s-Gravenhage",
                                     "Groningen (municipality)": "Groningen",
                                     "Utrecht (municipality)": "Utrecht",
@@ -24,6 +22,7 @@ def readCsvImmigration(path_to_immigration_file):
                                     "Middelburg (Z.)": "Middelburg",
                                     "Hengelo (O.)": "Hengelo"}
 
+    start_year = getStartYear()
     with open(path_to_immigration_file, newline='', encoding='utf-8') as csvfile:
         csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
         next(csv_reader, None)  # skip the headers
@@ -56,7 +55,7 @@ def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapp
 
     # Can contain missing data
     csv_delimeter = ','
-    start_year = 2013
+    start_year = getStartYear()
     immigration_all_years = readCsvFile(
         path_to_immigration_csv_file, start_year, output_immigration_folder, ignored_municipalities, csv_delimeter)
     print("Successfully loaded {} for {} years".format(
