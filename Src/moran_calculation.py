@@ -91,8 +91,13 @@ def calculateGlobalMoranI(municipalities_polygons_with_data, queen_spatial_weigh
     global_moran_i_results = [[year, expect_moran_value, round(moran_global.I, 3), str(
         spatial_correlation), moran_global.p_sim, moran_global.z_sim]]
     print(type(global_moran_i_results))
-    exportDataToCSVFile(global_moran_i_results,
-                        field_names, moran_file_path, 'w')
+
+    if year == getStartYear():
+        exportDataToCSVFile(global_moran_i_results,
+                            field_names, moran_file_path, 'w')
+    else:
+        exportDataToCSVFile(global_moran_i_results,
+                            field_names, moran_file_path, 'a')
 
     print("Moran EI value{}!".format(moran_global.EI))
 

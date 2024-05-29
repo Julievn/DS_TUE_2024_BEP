@@ -9,6 +9,11 @@ from scipy import stats
 import matplotlib.pyplot as plt
 import numpy as np
 
+
+def getStartYear():
+    return 2013
+
+
 # data is a list with each element is a row in the csv file. Each element can contain more than 1 column
 # field_names are the column names
 
@@ -44,9 +49,10 @@ def getMunicipalitiesPolygonsWithData(path_to_shape_file, year, data_per_year, d
     # kwargs in Python is a special syntax that allows you to pass a keyworded, variable-length argument dictionary to a function.
     # It is short for "keyword arguments". When defining a function, you can use the ** in front of a parameter to indicate that
     # it should accept any number of keyword arguments.
+
     def records(filename, usecols, year, data_per_year, **kwargs):
         municipalities_with_polygons_and_not_data_file_name_path = output_folder + \
-            "/municipalties_with_polygons_and_not_" + \
+            "/" + str(year) + "/municipalties_with_polygons_and_not_" + \
             data_name + "_" + str(year) + ".txt"
         municipality_code_name_mapping = {}
         with fiona.open(filename, **kwargs) as source:

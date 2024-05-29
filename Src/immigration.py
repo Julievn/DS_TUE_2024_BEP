@@ -85,7 +85,7 @@ def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapp
 
         # Keep only municipalities with immigration data
         municipalties_polygons_with_immigration = getMunicipalitiesPolygonsWithData(
-            path_to_shape_file, year, immigration_per_year, data_name, output_immigration_folder_per_year, True)
+            path_to_shape_file, year, immigration_per_year, data_name, output_immigration_folder, True)
         print("Successfully loaded {} with {} elements".format(
             path_to_shape_file, len(municipalties_polygons_with_immigration)))
 
