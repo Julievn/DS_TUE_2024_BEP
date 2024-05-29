@@ -41,10 +41,11 @@ def processHouseholdIncome(path_to_household_incomes_csv_file, municipality_name
     household_incomes_years = substituteMissingDataWithGuessedOne(
         household_incomes_years, data_name, municipality_name_code_mapping, output_household_incomes_folder, start_year, end_year)
 
-    for year_idx in range(1):
+    for year_idx in range(end_year - start_year + 1):
         household_incomes_per_year = household_incomes_years[year_idx]
         year = start_year + year_idx
-        print("--------{}".format(year))
+        print("-------- Processing {} household income for {} municipalities for year {}".format(
+            len(household_incomes_per_year), len(household_incomes_per_year), year))
 
         # Prepare output household income folder
         output_household_incomes_folder_per_year = output_household_incomes_folder + \
