@@ -42,6 +42,7 @@ def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_map
     print("During {} years, minimum house price is {} while maximum is {}".format(
         len(house_prices_years), min_house_price, max_house_price))
 
+    local_moran_results_list = []
     municipalities_polygons_with_house_prices_list = []
     for year_idx in range(end_year - start_year + 1):
         house_prices_per_year = house_prices_years[year_idx]
@@ -102,8 +103,12 @@ def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_map
         # Main part: calculate local Moran I value
         local_moran_result = calculateLocalMoranI(municipalities_polygons_with_house_prices_without_islands,
                                                   queen_spatial_weight_matrix, data_name, output_housing_price_folder, year)
+        local_moran_results_list.append(local_moran_result)
         exportFoliumLisaMap(municipalities_polygons_with_house_prices_without_islands,
                             data_name, local_moran_result, output_housing_price_folder_per_year, year)
 
     exportChoroplethMapsAllYears(
         municipalities_polygons_with_house_prices_list, data_name, output_housing_price_folder, min_house_price, max_house_price)
+
+    exportScatterPlotsAllYears(municipalities_polygons_with_house_prices_list,
+                               data_name, local_moran_results_list, output_housing_price_folder)
