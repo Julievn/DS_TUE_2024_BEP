@@ -245,3 +245,85 @@ def exportScatterPlotsAllYears(municipalities_polygons_with_data_list, data_name
     plt.savefig(output_folder + '/' + save_plot_file_name)
     plt.cla()
     plt.close(fig)
+
+
+def exportFoliumLisaMap(municipalities_polygons_with_data, data_name, moran_local, output_folder_per_year, year):
+    # The epsg:28992 crs is a Amersfoort coordinate reference system used in the Netherlands.
+    # As folium (i.e. leaflet.js) by default accepts values of latitude and longitude (angular units) as input,
+    # we need to project the geometry to a geographic coordinate system first.
+    print("showFoliumLisaMap municipalities_polygons_with_data with crs {}".format(
+        municipalities_polygons_with_data.crs))
+
+    municipalities_polygons_with_data = municipalities_polygons_with_data.copy()
+    municipalities_polygons_with_geographic_coordianate = municipalities_polygons_with_data.to_crs(
+        epsg=4326)  # Use WGS 84 (epsg:4326) as the geographic coordinate system
+    print(municipalities_polygons_with_geographic_coordianate.crs)
+    print(municipalities_polygons_with_geographic_coordianate.head())
+
+    # A column of dataframe can be assigned values of a numpy array
+    # moran_local.q is a numpy array
+    municipalities_polygons_with_geographic_coordianate['quadrant'] = moran_local.q
+    municipalities_polygons_with_geographic_coordianate['p_sim'] = moran_local.p_sim
+
+    # Convert all non-significant quadrants to zero
+    municipalities_polygons_with_geographic_coordianate['quadrant'] = np.where(
+        municipalities_polygons_with_geographic_coordianate['p_sim'] >= 0.05, 0, municipalities_polygons_with_geographic_coordianate['quadrant'])
+
+    # Get more informative descriptions
+    # With: 1 HH, 2 LH, 3 LL, 4 HL
+    # pandas.DataFrame.replace
+    # municipalities_polygons_with_geographic_coordianate['quadrant'] is a series in inside DataFrame
+    municipalities_polygons_with_geographic_coordianate['quadrant'] = municipalities_polygons_with_geographic_coordianate['quadrant'].replace(
+        to_replace={
+            0: "Insignificant",
+            1: "High-High",
+            2: "Low-High",
+            3: "Low-Low",
+            4: "High-Low"
+        }
+    )
+
+    print(municipalities_polygons_with_geographic_coordianate.head())
+
+    def my_colormap(value):  # scalar value defined in 'column'
+        if value == 0:
+            return "lightgrey"
+        elif value == 1:
+            return "red"
+        elif value == 2:
+            return "darkblue"
+        elif value == 3:
+            return "blue"
+        return "orange"
+
+    colors5_mpl = {
+        "High-High": "#d7191c",
+        "Low-High": "#89cff0",
+        "Low-Low": "#2c7bb6",
+        "High-Low": "#fdae61",
+        "Insignificant": "lightgrey",
+    }
+
+    x = municipalities_polygons_with_geographic_coordianate["quadrant"].values
+    y = np.unique(x)
+    colors5 = [colors5_mpl[i] for i in y]  # for mpl
+    hmap = colors.ListedColormap(colors5)
+
+    # Build a LISA cluster map
+    lisa_folium_map = municipalities_polygons_with_geographic_coordianate.explore(column="quadrant",
+                                                                                  cmap=hmap,
+                                                                                  legend=True,
+                                                                                  tiles="CartoDB positron",
+                                                                                  style_kwds={
+                                                                                      "weight": 0.5},
+                                                                                  legend_kwds={
+                                                                                      "caption": "LISA quadrant"},
+                                                                                  tooltip=False,
+                                                                                  popup=True,
+                                                                                  popup_kwds={
+                                                                                      "aliases": ["Municipality code", "Municipality", "Water", "Year", data_name, "LISA quadrant", "Pseudo p-value"]
+                                                                                  }
+                                                                                  )
+
+    lisa_folium_map.save(output_folder_per_year +
+                         "/folium_lisa_map_" + str(year) + ".html")
