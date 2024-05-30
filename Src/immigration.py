@@ -72,6 +72,19 @@ def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapp
     immigration_all_years = substituteMissingDataWithGuessedOne(
         immigration_all_years, data_name, municipality_name_code_mapping, output_immigration_folder, start_year, end_year)
 
+    min_immigration = immigration_all_years[0][list(
+        immigration_all_years[0].keys())[0]]
+    max_immigration = immigration_all_years[0][list(
+        immigration_all_years[0].keys())[0]]
+    for immigration_per_year in immigration_all_years:
+        for household_income in immigration_per_year.values():
+            min_immigration = min(min_immigration, household_income)
+            max_immigration = max(max_immigration, household_income)
+    print("During {} years, minimum household income is {} while maximum is {}".format(
+        len(immigration_all_years), min_immigration, max_immigration))
+
+    municipalities_polygons_with_immigration_list = []
+
     for year_idx in range(end_year - start_year + 1):
         immigration_per_year = immigration_all_years[year_idx]
         year = start_year + year_idx
@@ -88,9 +101,12 @@ def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapp
         print("Successfully loaded {} with {} elements".format(
             path_to_shape_file, len(municipalties_polygons_with_immigration)))
 
+        municipalities_polygons_with_immigration_list.append(
+            municipalties_polygons_with_immigration)
+
         # Show municipalties in map. Only municipalties with housing prices will be shown.
         showMunicipalitiesInMap(municipalties_polygons_with_immigration,
-                                data_name, output_immigration_folder_per_year, year)
+                                data_name, output_immigration_folder_per_year, year, min_immigration, max_immigration)
 
         id_variable = "GM_CODE"
         islands = getIslandFromQueenWeightMatrix(
@@ -112,3 +128,6 @@ def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapp
                                                   data_name, output_immigration_folder, year)
         exportFoliumLisaMap(municipalties_polygons_with_immigration_without_islands,
                             data_name, local_moran_result, output_immigration_folder_per_year, year)
+
+    exportChoroplethMapsAllYears(
+        municipalities_polygons_with_immigration_list, data_name, output_immigration_folder, min_immigration, max_immigration)

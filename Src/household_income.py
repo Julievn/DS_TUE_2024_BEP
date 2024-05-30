@@ -41,6 +41,19 @@ def processHouseholdIncome(path_to_household_incomes_csv_file, municipality_name
     household_incomes_years = substituteMissingDataWithGuessedOne(
         household_incomes_years, data_name, municipality_name_code_mapping, output_household_incomes_folder, start_year, end_year)
 
+    min_household_income = household_incomes_years[0][list(
+        household_incomes_years[0].keys())[0]]
+    max_household_income = household_incomes_years[0][list(
+        household_incomes_years[0].keys())[0]]
+    for household_income_per_year in household_incomes_years:
+        for household_income in household_income_per_year.values():
+            min_household_income = min(min_household_income, household_income)
+            max_household_income = max(max_household_income, household_income)
+    print("During {} years, minimum household income is {} while maximum is {}".format(
+        len(household_incomes_years), min_household_income, max_household_income))
+
+    municipalities_polygons_with_household_incomes_list = []
+
     for year_idx in range(end_year - start_year + 1):
         household_incomes_per_year = household_incomes_years[year_idx]
         year = start_year + year_idx
@@ -74,19 +87,22 @@ def processHouseholdIncome(path_to_household_incomes_csv_file, municipality_name
                             "/top_five_most_income_" + data_name + "_" + str(year) + ".csv", 'w')
 
         # Keep only municipalities with housing prices
-        municipalities_polygons_with_house_prices = getMunicipalitiesPolygonsWithData(
+        municipalities_polygons_with_household_incomes = getMunicipalitiesPolygonsWithData(
             path_to_shape_file, year, household_incomes_per_year, data_name, output_household_incomes_folder, True)
         print("Successfully loaded ", path_to_shape_file)
 
+        municipalities_polygons_with_household_incomes_list.append(
+            municipalities_polygons_with_household_incomes)
+
         # Show municipalities in map. Only municipalities with housing prices will be shown.
-        showMunicipalitiesInMap(municipalities_polygons_with_house_prices,
-                                data_name, output_household_incomes_folder_per_year, year)
+        showMunicipalitiesInMap(municipalities_polygons_with_household_incomes,
+                                data_name, output_household_incomes_folder_per_year, year, min_household_income, max_household_income)
 
         id_variable = "GM_CODE"
         islands = getIslandFromQueenWeightMatrix(
-            municipalities_polygons_with_house_prices, id_variable)
+            municipalities_polygons_with_household_incomes, id_variable)
         print("Islands found in Queen spatial matrix {}. Removing islands from the geometry.".format(islands))
-        municipalities_polygons_with_house_prices_without_islands = municipalities_polygons_with_house_prices.drop(
+        municipalities_polygons_with_house_prices_without_islands = municipalities_polygons_with_household_incomes.drop(
             islands).reset_index(drop=True)
 
         # Main part: calculate Global Moran I value
@@ -100,3 +116,6 @@ def processHouseholdIncome(path_to_household_incomes_csv_file, municipality_name
                                                   queen_spatial_weight_matrix, data_name, output_household_incomes_folder, year)
         exportFoliumLisaMap(municipalities_polygons_with_house_prices_without_islands,
                             data_name, local_moran_result, output_household_incomes_folder_per_year, year)
+
+    exportChoroplethMapsAllYears(
+        municipalities_polygons_with_household_incomes_list, data_name, output_household_incomes_folder, min_household_income, max_household_income)

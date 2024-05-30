@@ -51,10 +51,8 @@ def getMunicipalitiesPolygonsWithData(path_to_shape_file, year, data_per_year, d
     # it should accept any number of keyword arguments.
 
     def records(filename, usecols, year, data_per_year, **kwargs):
-        municipalities_with_polygons_and_not_data_file_name_path = output_folder + \
-            "/" + str(year) + "/municipalties_with_polygons_and_not_" + \
-            data_name + "_" + str(year) + ".txt"
         municipality_code_name_mapping = {}
+        municipalities_without_data = []
         with fiona.open(filename, **kwargs) as source:
             for feature in source:
                 f = {k: feature[k] for k in ['id', 'geometry']}
@@ -71,19 +69,23 @@ def getMunicipalitiesPolygonsWithData(path_to_shape_file, year, data_per_year, d
                     f['properties'][data_name] = data_per_year[municipality_name]
                     yield f
                 else:
-                    # print("SKIp city '%s' as DOES NOT have data or it's just water boundary" % municipality_name)
-                    # print (f)
-                    open_file = open(
-                        municipalities_with_polygons_and_not_data_file_name_path, "a")
                     if f['properties']['H2O'] == "NEE":
-                        open_file.write(municipality_name + "              " +
-                                        f['id'] + "        " + f['properties']['GM_CODE'] + "      " + "LAND")
+                        municipality_without_data = [
+                            f['id'], f['properties']['GM_CODE'], "LAND"]
+                        municipalities_without_data.append(
+                            municipality_without_data)
                     else:
-                        open_file.write(municipality_name + "              " +
-                                        f['id'] + "        " + f['properties']['GM_CODE'] + "      " + "WATER")
+                        municipality_without_data = [
+                            f['id'], f['properties']['GM_CODE'], "WATER"]
+                        municipalities_without_data.append(
+                            municipality_without_data)
 
-                    open_file.write("\n")
-                    open_file.close()
+        export_municipalities_with_polygons_and_not_data_file_name_path = output_folder + \
+            "/" + str(year) + "/municipalties_with_polygons_and_not_" + \
+            data_name + "_" + str(year) + ".txt"
+        field_names = ['Id', 'Municipality code', 'LAND or WATER']
+        print("Exporting municipalities with polygons and not data to csv {} with {} rows".format(
+            export_municipalities_with_polygons_and_not_data_file_name_path, len(municipalities_without_data) + 1))
 
         export_municipality_code_name_csv_path = output_folder + \
             "/" + "municipality_name_code" + "_" + str(year) + ".csv"

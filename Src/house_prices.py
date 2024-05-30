@@ -31,7 +31,19 @@ def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_map
     house_prices_years = substituteMissingDataWithGuessedOne(
         house_prices_years, data_name, municipality_name_code_mapping, output_housing_price_folder, start_year, end_year)
 
-    for year_idx in range(end_year - start_year):
+    min_house_price = house_prices_years[0][list(
+        house_prices_years[0].keys())[0]]
+    max_house_price = house_prices_years[0][list(
+        house_prices_years[0].keys())[0]]
+    for house_prices_per_year in house_prices_years:
+        for house_price in house_prices_per_year.values():
+            min_house_price = min(min_house_price, house_price)
+            max_house_price = max(max_house_price, house_price)
+    print("During {} years, minimum house price is {} while maximum is {}".format(
+        len(house_prices_years), min_house_price, max_house_price))
+
+    municipalities_polygons_with_house_prices_list = []
+    for year_idx in range(end_year - start_year + 1):
         house_prices_per_year = house_prices_years[year_idx]
         year = start_year + year_idx
         print("--------{}".format(year))
@@ -66,10 +78,13 @@ def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_map
         municipalities_polygons_with_house_prices = getMunicipalitiesPolygonsWithData(
             path_to_shape_file, year, house_prices_per_year, data_name, output_housing_price_folder, True)
         print("Successfully loaded ", path_to_shape_file)
+        municipalities_polygons_with_house_prices_list.append(
+            municipalities_polygons_with_house_prices)
 
         # Show municipalities in map. Only municipalities with housing prices will be shown.
         showMunicipalitiesInMap(municipalities_polygons_with_house_prices,
-                                data_name, output_housing_price_folder_per_year, year)
+                                data_name, output_housing_price_folder_per_year, year,
+                                min_house_price, max_house_price)
 
         id_variable = "GM_CODE"
         islands = getIslandFromQueenWeightMatrix(
@@ -89,3 +104,6 @@ def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_map
                                                   queen_spatial_weight_matrix, data_name, output_housing_price_folder, year)
         exportFoliumLisaMap(municipalities_polygons_with_house_prices_without_islands,
                             data_name, local_moran_result, output_housing_price_folder_per_year, year)
+
+    exportChoroplethMapsAllYears(
+        municipalities_polygons_with_house_prices_list, data_name, output_housing_price_folder, min_house_price, max_house_price)
