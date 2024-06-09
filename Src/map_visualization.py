@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from splot.esda import moran_scatterplot
+from splot.esda import lisa_cluster
 from utility import *
 import math
 
@@ -157,6 +158,25 @@ def exportChoroplethMapsAllYears(municipalities_polygons_with_data_list, data_na
     plt.close(fig)
 
 
+def exportScatterPlotYear(municipalities_polygons_with_data, data_name, local_moran_results, output_folder, year):
+    # Scatter plots
+    width = 9
+    height = 5
+    fig, ax = plt.subplots(1, 1, figsize=(width, height))
+    moran_local_colors = getMoranColors(local_moran_results)
+    sub_fig, sub_ax = moran_scatterplot(
+        local_moran_results, True, p=0.05, ax=ax, scatter_kwds={'c': moran_local_colors})
+    sub_ax.set_xlabel(data_name + ' in ' + str(year))
+    sub_ax.set_ylabel('Spatial Lag of ' + data_name)
+
+    save_plot_file_name = "moran_scatterplot_" + str(year)
+    output_folder_per_year = output_folder + '/' + str(year)
+    plt.savefig(output_folder_per_year + '/' + save_plot_file_name)
+    plt.cla()
+    plt.close(sub_fig)
+    plt.close(fig)
+
+
 def exportScatterPlotsAllYears(municipalities_polygons_with_data_list, data_name, local_moran_results_list, output_folder):
     # Polygon with data with color scale representing different values of data
     # number of rows and columns of the subplot grid
@@ -185,34 +205,7 @@ def exportScatterPlotsAllYears(municipalities_polygons_with_data_list, data_name
 
         municipalities_polygons_with_data = municipalities_polygons_with_data_list[year_idx]
         local_moran_result = local_moran_results_list[year_idx]
-
-        # Convert all non-significant quadrants to zero
-        moran_local_quarants = local_moran_result.q
-        moran_local_quarants = np.where(
-            local_moran_result.p_sim >= 0.05, 0, moran_local_quarants)
-
-        #  1: "#d7191c", 2: "#89cff0", 3: "#2c7bb6", 4: "#fdae61", 0: "lightgrey"
-        #  With: 1 HH, 2 LH, 3 LL, 4 HL
-        quarants_colors_mapping = ["lightgrey",
-                                   "#d7191c", "#89cff0", "#2c7bb6", "#fdae61"]
-
-        # For 2020 year there is no High Low values so the colors messed up.
-        # That's why we need to explicity create this color list and assign to each local moran value
-        moran_local_colors = []
-        for idx in range(len(moran_local_quarants)):
-            moran_local_color = quarants_colors_mapping[moran_local_quarants[idx]]
-            moran_local_colors.append(moran_local_color)
-
         moran_local_colors = getMoranColors(local_moran_result)
-
-        print("Exporting scatter plots all years with local Moran quadrants size = {}, p_sim = {}, colors size = {}".format(
-            len(local_moran_result.q), len(local_moran_result.p_sim), len(moran_local_colors)))
-        print("Exporting scatter plots all years with local Moran quadrants = {}".format(
-            moran_local_quarants))
-        print("Exporting scatter plots all years with p_sim = {}".format(
-            local_moran_result.p_sim))
-        print("Exporting scatter plots all years with colors = {}".format(
-            moran_local_colors))
 
         # ax: Matplotlib Axes instance, optional
         # If given, the Moran plot will be created inside this axis. Default =None.
@@ -222,14 +215,9 @@ def exportScatterPlotsAllYears(municipalities_polygons_with_data_list, data_name
             sub_ax.set_ylabel('Spatial Lag of ' + data_name)
             sub_ax.set_xlabel("")
         else:
-            # sub_ax.set_axis_off()
             ax[row][column].set_axis_off()
 
         title_sub_plot = str(getStartYear() + year_idx)
-        print("year_idx {}".format(year_idx))
-        print("getStartYear() {}".format(getStartYear()))
-        print("getStartYear() + iyear_idxdx {}".format(getStartYear() + year_idx))
-        print("title_sub_plot {}".format(title_sub_plot))
         ax[row][column].set_title(
             title_sub_plot, y=-0.05, fontsize=10)
 
@@ -245,6 +233,91 @@ def exportScatterPlotsAllYears(municipalities_polygons_with_data_list, data_name
     plt.savefig(output_folder + '/' + save_plot_file_name)
     plt.cla()
     plt.close(fig)
+
+    for year_idx in range(len(municipalities_polygons_with_data_list)):
+        current_year = getStartYear() + year_idx
+        municipalities_polygons_with_data = municipalities_polygons_with_data_list[year_idx]
+        local_moran_result = local_moran_results_list[year_idx]
+        exportScatterPlotYear(municipalities_polygons_with_data,
+                              data_name, local_moran_result, output_folder, current_year)
+
+
+def exportLisaHotColdSpotsYear(municipalities_polygons_with_data, data_name, local_moran_results, output_folder, year):
+    # Let's now visualize the areas we found to be significant on a map:
+    # hotspot cold spot
+    output_folder_per_year = output_folder + '/' + str(year)
+    fig, ax = lisa_cluster(
+        local_moran_results, municipalities_polygons_with_data.copy(), p=0.05, legend_kwds={'loc': 'upper left'}, figsize=(5, 5))
+    ax.set_title(str(year), y=-0.05, fontsize=10)
+    save_plot_file_name = "moran_hotspot_" + str(year)
+    plt.savefig(output_folder_per_year + '/' + save_plot_file_name)
+    plt.cla()
+    plt.close(fig)
+
+
+def exportLisaHotColdSpotsAllYears(municipalities_polygons_with_data_list, data_name, local_moran_results_list, output_folder):
+    # Polygon with data with color scale representing different values of data
+    # number of rows and columns of the subplot grid
+    # Choropleth maps (maps where the color of each shape is based on the value of an associated variable).
+    num_columns = min(3, len(municipalities_polygons_with_data_list))
+    num_rows = math.ceil(
+        len(municipalities_polygons_with_data_list) / num_columns)
+
+    # figsize: The size of the entire figure containing the subplots can be adjusted using the figure
+    # (figsize=(width, height)) function, where width and height are in inches.
+    # This indirectly changes the size of the subplots.
+    # This will create larger subplots, but they will still have the same proportions.
+    width_each_sub_plot = 5
+    fig, ax = plt.subplots(num_rows, num_columns, sharex=True, sharey=True, figsize=(width_each_sub_plot * num_columns, width_each_sub_plot * num_rows),
+                           gridspec_kw={
+                           'width_ratios': [width_each_sub_plot] * num_columns,
+                           'height_ratios': [width_each_sub_plot] * num_rows,
+                           'wspace': 0.05,
+                           'hspace': 0})
+
+    row = 0
+    column = 0
+    for year_idx in range(len(municipalities_polygons_with_data_list)):
+        row = int(year_idx / num_columns)
+        column = year_idx % num_columns
+
+        municipalities_polygons_with_data = municipalities_polygons_with_data_list[year_idx]
+        local_moran_result = local_moran_results_list[year_idx]
+
+        print("exportLisaHotColdSpotsAllYears len local_moran_result {} - year {}".format(
+            len(local_moran_result.q), str(getStartYear() + year_idx)))
+        print("exportLisaHotColdSpotsAllYears len municipalities_polygons_with_data {} - year {}".format(
+            len(municipalities_polygons_with_data), str(getStartYear() + year_idx)))
+
+        if column == 0:
+            sub_fig, sub_ax = lisa_cluster(
+                local_moran_result, municipalities_polygons_with_data.copy(), p=0.05, ax=ax[row][column], legend=True, legend_kwds={'loc': 'upper left'}, figsize=(5, 5))
+        else:
+            sub_fig, sub_ax = lisa_cluster(
+                local_moran_result, municipalities_polygons_with_data.copy(), p=0.05, ax=ax[row][column], legend=False, figsize=(5, 5))
+
+        title_sub_plot = str(getStartYear() + year_idx)
+        ax[row][column].set_title(
+            title_sub_plot, y=-0.05, fontsize=10)
+        ax[row][column].set_axis_off()
+
+    for current_row in range(row, num_rows):
+        for next_removed_column in range(column + 1, num_columns):
+            fig.delaxes(ax[current_row][next_removed_column])
+
+    fig.suptitle(data_name + " for all years", fontsize=16)
+    save_plot_file_name = "moran_hotspot_" + data_name + "_all_years"
+    plt.savefig(output_folder + '/' + save_plot_file_name)
+
+    plt.cla()
+    plt.close(fig)
+
+    for year_idx in range(len(municipalities_polygons_with_data_list)):
+        current_year = getStartYear() + year_idx
+        municipalities_polygons_with_data = municipalities_polygons_with_data_list[year_idx]
+        local_moran_result = local_moran_results_list[year_idx]
+        exportLisaHotColdSpotsYear(municipalities_polygons_with_data,
+                                   data_name, local_moran_result, output_folder, current_year)
 
 
 def exportFoliumLisaMap(municipalities_polygons_with_data, data_name, moran_local, output_folder_per_year, year):
@@ -324,6 +397,5 @@ def exportFoliumLisaMap(municipalities_polygons_with_data, data_name, moran_loca
                                                                                       "aliases": ["Municipality code", "Municipality", "Water", "Year", data_name, "LISA quadrant", "Pseudo p-value"]
                                                                                   }
                                                                                   )
-
     lisa_folium_map.save(output_folder_per_year +
                          "/folium_lisa_map_" + str(year) + ".html")
