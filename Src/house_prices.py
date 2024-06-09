@@ -44,7 +44,8 @@ def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_map
 
     local_moran_results_list = []
     municipalities_polygons_with_house_prices_list = []
-    for year_idx in range(end_year - start_year + 1):
+    # for year_idx in range(end_year - start_year + 1):
+    for year_idx in range(11):
         house_prices_per_year = house_prices_years[year_idx]
         year = start_year + year_idx
         print("--------{}".format(year))
@@ -79,8 +80,6 @@ def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_map
         municipalities_polygons_with_house_prices = getMunicipalitiesPolygonsWithData(
             path_to_shape_file, year, house_prices_per_year, data_name, output_housing_price_folder, True)
         print("Successfully loaded ", path_to_shape_file)
-        municipalities_polygons_with_house_prices_list.append(
-            municipalities_polygons_with_house_prices)
 
         # Show municipalities in map. Only municipalities with housing prices will be shown.
         showMunicipalitiesInMap(municipalities_polygons_with_house_prices,
@@ -93,6 +92,8 @@ def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_map
         print("Islands found in Queen spatial matrix {}. Removing islands from the geometry.".format(islands))
         municipalities_polygons_with_house_prices_without_islands = municipalities_polygons_with_house_prices.drop(
             islands).reset_index(drop=True)
+        municipalities_polygons_with_house_prices_list.append(
+            municipalities_polygons_with_house_prices_without_islands)
 
         # Main part: calculate Global Moran I value
         queen_spatial_weight_matrix = calculateQueenWeightMatrix(
@@ -112,3 +113,6 @@ def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_map
 
     exportScatterPlotsAllYears(municipalities_polygons_with_house_prices_list,
                                data_name, local_moran_results_list, output_housing_price_folder)
+
+    exportLisaHotColdSpotsAllYears(municipalities_polygons_with_house_prices_list,
+                                   data_name, local_moran_results_list, output_housing_price_folder)
