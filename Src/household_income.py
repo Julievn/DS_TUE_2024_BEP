@@ -93,9 +93,6 @@ def processHouseholdIncome(path_to_household_incomes_csv_file, municipality_name
             path_to_shape_file, year, household_incomes_per_year, data_name, output_household_incomes_folder, True)
         print("Successfully loaded ", path_to_shape_file)
 
-        municipalities_polygons_with_household_incomes_list.append(
-            municipalities_polygons_with_household_incomes)
-
         # Show municipalities in map. Only municipalities with housing prices will be shown.
         showMunicipalitiesInMap(municipalities_polygons_with_household_incomes,
                                 data_name, output_household_incomes_folder_per_year, year, min_household_income, max_household_income)
@@ -106,6 +103,9 @@ def processHouseholdIncome(path_to_household_incomes_csv_file, municipality_name
         print("Islands found in Queen spatial matrix {}. Removing islands from the geometry.".format(islands))
         municipalities_polygons_with_house_prices_without_islands = municipalities_polygons_with_household_incomes.drop(
             islands).reset_index(drop=True)
+
+        municipalities_polygons_with_household_incomes_list.append(
+            municipalities_polygons_with_house_prices_without_islands)
 
         # Main part: calculate Global Moran I value
         queen_spatial_weight_matrix = calculateQueenWeightMatrix(
@@ -126,10 +126,10 @@ def processHouseholdIncome(path_to_household_incomes_csv_file, municipality_name
         municipalities_polygons_with_household_incomes_list, data_name, output_household_incomes_folder, min_household_income, max_household_income)
 
     exportScatterPlotsAllYears(municipalities_polygons_with_household_incomes_list,
-                               data_name, local_moran_result, output_household_incomes_folder)
+                               data_name, local_moran_results_list, output_household_incomes_folder)
 
     exportLisaHotColdSpotsAllYears(municipalities_polygons_with_household_incomes_list,
-                                   data_name, local_moran_result, output_household_incomes_folder)
+                                   data_name, local_moran_results_list, output_household_incomes_folder)
 
     exportAllQuadrantsAllYearsToCSVFile(
         municipality_labeled_with_quadrants_list, data_name, output_household_incomes_folder)

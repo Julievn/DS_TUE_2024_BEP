@@ -103,9 +103,6 @@ def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapp
         print("Successfully loaded {} with {} elements".format(
             path_to_shape_file, len(municipalties_polygons_with_immigration)))
 
-        municipalities_polygons_with_immigration_list.append(
-            municipalties_polygons_with_immigration)
-
         # Show municipalties in map. Only municipalties with housing prices will be shown.
         showMunicipalitiesInMap(municipalties_polygons_with_immigration,
                                 data_name, output_immigration_folder_per_year, year, min_immigration, max_immigration)
@@ -118,6 +115,8 @@ def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapp
             islands).reset_index(drop=True)
         print("After removing islands: {} elements".format(
             len(municipalties_polygons_with_immigration_without_islands)))
+        municipalities_polygons_with_immigration_list.append(
+            municipalties_polygons_with_immigration_without_islands)
 
         # Main part: calculate Global Moran I value
         queen_spatial_weight_matrix = calculateQueenWeightMatrix(
@@ -138,10 +137,10 @@ def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapp
         municipalities_polygons_with_immigration_list, data_name, output_immigration_folder, min_immigration, max_immigration)
 
     exportScatterPlotsAllYears(municipalities_polygons_with_immigration_list,
-                               data_name, local_moran_result, output_immigration_folder)
+                               data_name, local_moran_results_list, output_immigration_folder)
 
     exportLisaHotColdSpotsAllYears(municipalities_polygons_with_immigration_list,
-                                   data_name, local_moran_result, output_immigration_folder)
+                                   data_name, local_moran_results_list, output_immigration_folder)
 
     exportAllQuadrantsAllYearsToCSVFile(
         municipality_labeled_with_quadrants_list, data_name, output_immigration_folder)
