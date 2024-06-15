@@ -83,6 +83,8 @@ def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapp
     print("During {} years, minimum household income is {} while maximum is {}".format(
         len(immigration_all_years), min_immigration, max_immigration))
 
+    local_moran_results_list = []
+    municipality_labeled_with_quadrants_list = []
     municipalities_polygons_with_immigration_list = []
 
     for year_idx in range(end_year - start_year + 1):
@@ -110,7 +112,7 @@ def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapp
 
         id_variable = "GM_CODE"
         islands = getIslandFromQueenWeightMatrix(
-            municipalties_polygons_with_immigration, id_variable)
+            municipalties_polygons_with_immigration, id_variable, output_immigration_folder, year)
         print("Islands found in Queen spatial matrix {}. Removing islands from the geometry.".format(islands))
         municipalties_polygons_with_immigration_without_islands = municipalties_polygons_with_immigration.drop(
             islands).reset_index(drop=True)
@@ -124,10 +126,22 @@ def processImmigration(path_to_immigration_csv_file, municipality_name_code_mapp
                               data_name, output_immigration_folder, year)
 
         # Main part: calculate local Moran I value
-        local_moran_result = calculateLocalMoranI(municipalties_polygons_with_immigration_without_islands, queen_spatial_weight_matrix,
-                                                  data_name, output_immigration_folder, year)
+        local_moran_result, municipality_labeled_with_quadrants = calculateLocalMoranI(municipalties_polygons_with_immigration_without_islands, queen_spatial_weight_matrix,
+                                                                                       data_name, output_immigration_folder, year)
+        local_moran_results_list.append(local_moran_result)
+        municipality_labeled_with_quadrants_list.append(
+            municipality_labeled_with_quadrants)
         exportFoliumLisaMap(municipalties_polygons_with_immigration_without_islands,
                             data_name, local_moran_result, output_immigration_folder_per_year, year)
 
     exportChoroplethMapsAllYears(
         municipalities_polygons_with_immigration_list, data_name, output_immigration_folder, min_immigration, max_immigration)
+
+    exportScatterPlotsAllYears(municipalities_polygons_with_immigration_list,
+                               data_name, local_moran_result, output_immigration_folder)
+
+    exportLisaHotColdSpotsAllYears(municipalities_polygons_with_immigration_list,
+                                   data_name, local_moran_result, output_immigration_folder)
+
+    exportAllQuadrantsAllYearsToCSVFile(
+        municipality_labeled_with_quadrants_list, data_name, output_immigration_folder)

@@ -43,9 +43,9 @@ def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_map
         len(house_prices_years), min_house_price, max_house_price))
 
     local_moran_results_list = []
+    municipality_labeled_with_quadrants_list = []
     municipalities_polygons_with_house_prices_list = []
-    # for year_idx in range(end_year - start_year + 1):
-    for year_idx in range(11):
+    for year_idx in range(end_year - start_year + 1):
         house_prices_per_year = house_prices_years[year_idx]
         year = start_year + year_idx
         print("--------{}".format(year))
@@ -88,7 +88,7 @@ def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_map
 
         id_variable = "GM_CODE"
         islands = getIslandFromQueenWeightMatrix(
-            municipalities_polygons_with_house_prices, id_variable)
+            municipalities_polygons_with_house_prices, id_variable, output_housing_price_folder, year)
         print("Islands found in Queen spatial matrix {}. Removing islands from the geometry.".format(islands))
         municipalities_polygons_with_house_prices_without_islands = municipalities_polygons_with_house_prices.drop(
             islands).reset_index(drop=True)
@@ -102,9 +102,15 @@ def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_map
                               queen_spatial_weight_matrix, data_name, output_housing_price_folder, year)
 
         # Main part: calculate local Moran I value
-        local_moran_result = calculateLocalMoranI(municipalities_polygons_with_house_prices_without_islands,
-                                                  queen_spatial_weight_matrix, data_name, output_housing_price_folder, year)
+        local_moran_result, municipality_labeled_with_quadrants = calculateLocalMoranI(municipalities_polygons_with_house_prices_without_islands,
+                                                                                       queen_spatial_weight_matrix, data_name, output_housing_price_folder, year)
         local_moran_results_list.append(local_moran_result)
+
+        print("municipality_labeled_wtih_quadrants is {} with size {}".format(
+            type(municipality_labeled_with_quadrants), len(municipality_labeled_with_quadrants)))
+        municipality_labeled_with_quadrants_list.append(
+            municipality_labeled_with_quadrants)
+
         exportFoliumLisaMap(municipalities_polygons_with_house_prices_without_islands,
                             data_name, local_moran_result, output_housing_price_folder_per_year, year)
 
@@ -116,3 +122,5 @@ def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_map
 
     exportLisaHotColdSpotsAllYears(municipalities_polygons_with_house_prices_list,
                                    data_name, local_moran_results_list, output_housing_price_folder)
+    exportAllQuadrantsAllYearsToCSVFile(
+        municipality_labeled_with_quadrants_list, data_name, output_housing_price_folder)

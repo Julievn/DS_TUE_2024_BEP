@@ -24,6 +24,94 @@ def readDictionaryFromCSVFile(path_to_code_name_mapping_file):
         return {rows[0]: rows[1] for rows in reader}
 
 
+def exportAllQuadrantsAllYearsToCSVFile(municipality_labeled_with_quadrants_list, data_name, output_folder):
+    quadrants = {
+        "1": "HH",
+        "2": "LH",
+        "3": "LL",
+        "4": "HL",
+    }
+
+    print("municipality_labeled_wtih_quadrants_list is {} with size {}".format(
+        type(municipality_labeled_with_quadrants_list), len(municipality_labeled_with_quadrants_list)))
+
+    print("exportAllQuadrantsAllYearsToCSVFile with municipality_labeled_with_quadrants_list {}".format(
+        type(municipality_labeled_with_quadrants_list)))
+
+    for i in range(1, 5):
+        municipality_labeled_with_a_quadrant_all_years = []
+        for j in range(len(municipality_labeled_with_quadrants_list)):
+            # One year with 4 quadrants: 1 HH, 2 LH, 3 LL, 4 HL
+            # dictionary with GM_NAME -> quadrant value
+            municipality_labeled_with_a_quadrant_per_year = {
+                k: v for k, v in municipality_labeled_with_quadrants_list[j].items() if v == i}
+            municipality_labeled_with_a_quadrant_all_years.append(
+                municipality_labeled_with_a_quadrant_per_year)
+
+        exportQuadrantAllYearsToCSVFile(
+            municipality_labeled_with_a_quadrant_all_years, quadrants[str(i)], output_folder)
+
+
+def exportQuadrantAllYearsToCSVFile(municipality_labeled_with_a_quadrant_all_years, data_name, output_folder):
+    all_municipality_names_in_quadrant = set()
+    for municipality_labeled_with_a_quadrant_per_year in municipality_labeled_with_a_quadrant_all_years:
+        for municipality_name in municipality_labeled_with_a_quadrant_per_year:
+            all_municipality_names_in_quadrant.add(municipality_name)
+
+    sorted_municipalities_all_years = []
+    for municipality_labeled_with_a_quadrant_per_year in municipality_labeled_with_a_quadrant_all_years:
+        for municipality_name in all_municipality_names_in_quadrant:
+            if municipality_name not in municipality_labeled_with_a_quadrant_per_year.keys():
+                municipality_labeled_with_a_quadrant_per_year[municipality_name] = ' '
+            else:
+                municipality_labeled_with_a_quadrant_per_year[municipality_name] = municipality_name
+
+        print("Export quadrant {} for {}".format(
+            data_name, municipality_labeled_with_a_quadrant_per_year))
+
+        sorted_municipalities_per_year = dict(
+            sorted(municipality_labeled_with_a_quadrant_per_year.items()))
+
+        print("Export sorted quadrant {} per year {}".format(
+            data_name, sorted_municipalities_per_year))
+
+        sorted_municipalities_per_year = list(
+            sorted_municipalities_per_year.values())
+
+        print("Export sorted list quadrant {} per year {}".format(
+            data_name, sorted_municipalities_per_year))
+
+        sorted_municipalities_all_years.append(
+            sorted_municipalities_per_year)
+
+    municipalities_quadrants_all_years = []
+    for i in range(len(all_municipality_names_in_quadrant)):
+        row_a_municipality_all_years = []
+        count = 0
+        for j in range(len(sorted_municipalities_all_years)):
+            row_a_municipality_all_years.append(
+                sorted_municipalities_all_years[j][i])
+            if sorted_municipalities_all_years[j][i] != ' ':
+                count = count + 1
+
+        print("Export sorted quadrant {} all years per row {}".format(
+            data_name, row_a_municipality_all_years))
+        row_a_municipality_all_years.append(str(count))
+        municipalities_quadrants_all_years.append(row_a_municipality_all_years)
+
+    field_names = []
+    for i in range(len(sorted_municipalities_all_years)):
+        year = getStartYear() + i
+        field_names.append(year)
+
+    field_names.append("Count")
+
+    file_path = output_folder + '/' + data_name + '_all_years.csv'
+    exportDataToCSVFile(municipalities_quadrants_all_years,
+                        field_names, file_path, 'w')
+
+
+# Data is a list (rows) of list (each column in the row)
 def exportDataToCSVFile(data, field_names, file_path, mode):
     # Opening the file with newline='' on all platforms to disable universal newlines translation
     with open(file_path, mode, newline='', encoding='utf-8') as csvfile:
