@@ -86,43 +86,11 @@ def calculateQueenWeightMatrix(municipalities_polygons_with_data, data_name, id_
         data_name, queen_weight_matrix))
 
     print(queen_weight_matrix.neighbors)
-    # print(queen_weight_matrix.neighbors['GM1970'])
-    # print(queen_weight_matrix.neighbors['GM1979'])
-    # print(queen_weight_matrix.neighbors['GM1966'])
-    # print(queen_weight_matrix.neighbors['GM0088'])
-
     # We transform our weights to be row-standardized.
     # Each weight is divided by its row sum (the sum of the weights of all neighboring features).
     # Row standardized weighting is often used with fixed distance neighborhoods and almost always used for neighborhoods
     # based on polygon contiguity.
     queen_weight_matrix.transform = 'r'
-
-    # A full, dense matrix describing all of the pairwise relationships is constructed using the .full method, or when pysal.full is called on a weights object:
-    w_matrix, ids = queen_weight_matrix.full()
-
-    # Visualize the queen matrix
-    output_folder = output_folder + '/' + str(year)
-    # print("Exporting queen spatial weight matrix visualization for year {} to {} ".format(
-    #    year, output_folder))
-    # fig, axs = plt.subplots(1, 2, figsize=(16, 8))
-    # for i in range(2):
-    #    ax = municipalities_polygons_with_data.plot(
-    #        edgecolor="k", facecolor="w", ax=axs[i]
-    #    )
-    #    # Plot graph connections
-    #    queen_weight_matrix.plot(
-    #        municipalities_polygons_with_data,
-    #        ax=axs[i],
-    #        edge_kws=dict(color="r", linestyle=":", linewidth=1),
-    #        node_kws=dict(marker=""),
-    #    )
-    # Remove the axis
-    # axs[i].set_axis_off()
-    # axs[1].axis([-13040000, -13020000, 3850000, 3860000])
-    # save_plot_file_name = "queen_matrix_visualization_" + str(year)
-    # plt.savefig(output_folder + '/' + save_plot_file_name)
-    # plt.cla()
-    # plt.close(fig)
 
     return queen_weight_matrix
 
