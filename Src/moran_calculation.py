@@ -18,13 +18,58 @@ from map_visualization import *
 import matplotlib.pyplot as plt
 
 
-def getIslandFromQueenWeightMatrix(municipalities_polygons_with_data, id_variable):
+def getIslandFromQueenWeightMatrix(municipalities_polygons_with_data, id_variable, output_folder, year):
     if id_variable != "":
         queen_weight_matrix = Queen.from_dataframe(
             municipalities_polygons_with_data, idVariable=id_variable)
     else:
         queen_weight_matrix = Queen.from_dataframe(
             municipalities_polygons_with_data)
+
+    # Visualize the queen matrix
+    output_folder = output_folder + '/' + str(year)
+    print("Exporting queen spatial weight matrix visualization for year {} to {} ".format(
+        year, output_folder))
+    fig, axs = plt.subplots(1, 2, figsize=(16, 8))
+    for i in range(2):
+        ax = municipalities_polygons_with_data.plot(
+            edgecolor="k", facecolor="w", ax=axs[i]
+        )
+        ax.set_axis_off()
+        # Plot graph connections
+        queen_weight_matrix.plot(
+            municipalities_polygons_with_data,
+            ax=axs[i],
+            edge_kws=dict(color="r", linestyle=":", linewidth=1),
+            node_kws=dict(marker=""),
+        )
+
+    # Remove the axis
+    axs[i].set_axis_off()
+    axs[1].axis([-13040000, -13020000, 3850000, 3860000])
+    save_plot_file_name = "queen_matrix_visualization_" + str(year)
+    plt.savefig(output_folder + '/' + save_plot_file_name)
+    plt.cla()
+    plt.close(fig)
+
+    print('GM0088 is an island but it has following neighbours {}'.format(
+        queen_weight_matrix.neighbors['GM0088']))  # Schiermonnikoog
+    print('GM0993 is an island but it has following neighbours {}'.format(
+        queen_weight_matrix.neighbors['GM0093']))
+    print('GM0996 is an island but it has following neighbours {}'.format(
+        queen_weight_matrix.neighbors['GM0096']))
+    print('GM0448 is an island but it has following neighbours {}'.format(
+        queen_weight_matrix.neighbors['GM0448']))
+
+    print("The following island(s) {} are detected {} ".format(
+        type(queen_weight_matrix.islands), queen_weight_matrix.islands))
+    queen_weight_matrix.islands.append('GM0088')  # Schiermonnikoog
+    queen_weight_matrix.islands.append('GM0096')
+    queen_weight_matrix.islands.append('GM0093')
+    queen_weight_matrix.islands.append('GM0448')
+
+    print("The following island(s) {} are returned {} ".format(
+        type(queen_weight_matrix.islands), queen_weight_matrix.islands))
     return queen_weight_matrix.islands
 
 
@@ -37,14 +82,47 @@ def calculateQueenWeightMatrix(municipalities_polygons_with_data, data_name, id_
         queen_weight_matrix = Queen.from_dataframe(
             municipalities_polygons_with_data)
 
-    print("Calculate weight matrix for {} ".format(
+    print("Calculate weight matrix for {} with results {} ".format(
         data_name, queen_weight_matrix))
+
+    print(queen_weight_matrix.neighbors)
+    # print(queen_weight_matrix.neighbors['GM1970'])
+    # print(queen_weight_matrix.neighbors['GM1979'])
+    # print(queen_weight_matrix.neighbors['GM1966'])
+    # print(queen_weight_matrix.neighbors['GM0088'])
 
     # We transform our weights to be row-standardized.
     # Each weight is divided by its row sum (the sum of the weights of all neighboring features).
     # Row standardized weighting is often used with fixed distance neighborhoods and almost always used for neighborhoods
     # based on polygon contiguity.
     queen_weight_matrix.transform = 'r'
+
+    # A full, dense matrix describing all of the pairwise relationships is constructed using the .full method, or when pysal.full is called on a weights object:
+    w_matrix, ids = queen_weight_matrix.full()
+
+    # Visualize the queen matrix
+    output_folder = output_folder + '/' + str(year)
+    # print("Exporting queen spatial weight matrix visualization for year {} to {} ".format(
+    #    year, output_folder))
+    # fig, axs = plt.subplots(1, 2, figsize=(16, 8))
+    # for i in range(2):
+    #    ax = municipalities_polygons_with_data.plot(
+    #        edgecolor="k", facecolor="w", ax=axs[i]
+    #    )
+    #    # Plot graph connections
+    #    queen_weight_matrix.plot(
+    #        municipalities_polygons_with_data,
+    #        ax=axs[i],
+    #        edge_kws=dict(color="r", linestyle=":", linewidth=1),
+    #        node_kws=dict(marker=""),
+    #    )
+    # Remove the axis
+    # axs[i].set_axis_off()
+    # axs[1].axis([-13040000, -13020000, 3850000, 3860000])
+    # save_plot_file_name = "queen_matrix_visualization_" + str(year)
+    # plt.savefig(output_folder + '/' + save_plot_file_name)
+    # plt.cla()
+    # plt.close(fig)
 
     return queen_weight_matrix
 
@@ -171,6 +249,16 @@ def calculateLocalMoranI(municipalities_polygons_with_data, queen_spatial_weight
     exportDataToCSVFile(low_high_spots_with_p_sims, field_names,
                         output_folder_per_year + "/" + data_name + "_" + str(year) + ".csv", 'w')
 
+    # Export Low Low
+    # With: 1 HH, 2 LH, 3 LL, 4 HL
+    data_name = "Low_Low"
+    field_names = ['Municipality', data_name]
+    high_high_spots = {
+        k: v for k, v in municipality_labeled_wtih_quadrants.items() if v == 3}
+    output_folder_per_year = output_folder + '/' + str(year)
+    exportDataToCSVFile(high_high_spots.items(
+    ), field_names, output_folder_per_year + "/" + data_name + "_" + str(year) + ".csv", 'w')
+
     # Export High Low - 1 HH, 2 LH, 3 LL, 4 HL
     data_name = "High_Low"
     field_names = ['Municipality', data_name, 'p_sim']
@@ -185,4 +273,4 @@ def calculateLocalMoranI(municipalities_polygons_with_data, queen_spatial_weight
     exportDataToCSVFile(high_low_spots_with_p_sims, field_names,
                         output_folder_per_year + "/" + data_name + "_" + str(year) + ".csv", 'w')
 
-    return moran_loc
+    return moran_loc, municipality_labeled_wtih_quadrants
