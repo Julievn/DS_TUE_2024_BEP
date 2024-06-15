@@ -194,7 +194,7 @@ def exportScatterPlotsAllYears(municipalities_polygons_with_data_list, data_name
                            gridspec_kw={
                            'width_ratios': [width_each_sub_plot] * num_columns,
                            'height_ratios': [width_each_sub_plot] * num_rows,
-                           'wspace': 0.05,
+                           'wspace': 0.15,
                            'hspace': 0})
 
     row = 0
@@ -211,11 +211,12 @@ def exportScatterPlotsAllYears(municipalities_polygons_with_data_list, data_name
         # If given, the Moran plot will be created inside this axis. Default =None.
         sub_fig, sub_ax = moran_scatterplot(
             local_moran_result, True, p=0.05, ax=ax[row][column], scatter_kwds={'c': moran_local_colors})
+
         if column == 0:
             sub_ax.set_ylabel('Spatial Lag of ' + data_name)
-            sub_ax.set_xlabel("")
         else:
-            ax[row][column].set_axis_off()
+            sub_ax.set_ylabel("")
+        sub_ax.set_xlabel("")
 
         title_sub_plot = str(getStartYear() + year_idx)
         ax[row][column].set_title(
