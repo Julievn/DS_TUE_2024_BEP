@@ -92,6 +92,8 @@ def processHousePrices(path_to_house_prices_csv_file, municipality_name_code_map
         print("Islands found in Queen spatial matrix {}. Removing islands from the geometry.".format(islands))
         municipalities_polygons_with_house_prices_without_islands = municipalities_polygons_with_house_prices.drop(
             islands).reset_index(drop=True)
+        print("After removing islands: {} elements".format(
+            len(municipalities_polygons_with_house_prices_without_islands)))
         municipalities_polygons_with_house_prices_list.append(
             municipalities_polygons_with_house_prices_without_islands)
 
